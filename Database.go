@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/dracory/uid"
 	"github.com/georgysavva/scany/sqlscan"
 	"github.com/gouniverse/maputils"
-	"github.com/gouniverse/uid"
 )
 
 // == CONSTRUCTOR ============================================================
