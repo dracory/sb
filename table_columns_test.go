@@ -10,8 +10,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/dracory/env"
 	"github.com/gouniverse/base/database"
-	"github.com/gouniverse/utils"
 
 	// _ "github.com/mattn/go-sqlite3"
 	_ "modernc.org/sqlite"
@@ -20,11 +20,11 @@ import (
 var TestsWithMySQL = true
 
 func initMySQLWithTable(tableName string, columns []Column) (db *sql.DB, err error) {
-	host := utils.Env("MYSQL_HOST")
-	port := utils.Env("MYSQL_PORT")
-	dbUser := utils.Env("MYSQL_USER")
-	dbPass := utils.Env("MYSQL_PASS")
-	dbName := utils.Env("MYSQL_DATABASE")
+	host := env.GetString("MYSQL_HOST")
+	port := env.GetString("MYSQL_PORT")
+	dbUser := env.GetString("MYSQL_USER")
+	dbPass := env.GetString("MYSQL_PASS")
+	dbName := env.GetString("MYSQL_DATABASE")
 
 	host = lo.Ternary(host == "", "localhost", host)
 	port = lo.Ternary(port == "", "33306", port)
