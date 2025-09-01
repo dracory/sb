@@ -22,11 +22,10 @@ require (
 )
 
 require (
-	github.com/dracory/database v0.2.0
+	github.com/dracory/database v0.3.0
 	github.com/dracory/uid v1.7.0
 	github.com/georgysavva/scany v1.2.3
 	github.com/go-sql-driver/mysql v1.9.0
-	github.com/gouniverse/maputils v0.7.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/samber/lo v1.49.1
 	github.com/spf13/cast v1.9.2

@@ -9,7 +9,7 @@ import (
 
 	"github.com/dracory/uid"
 	"github.com/georgysavva/scany/sqlscan"
-	"github.com/gouniverse/maputils"
+	"github.com/spf13/cast"
 )
 
 // == CONSTRUCTOR ============================================================
@@ -309,7 +309,7 @@ func (d *Database) SelectToMapString(sqlStr string, args ...any) ([]map[string]s
 	listMapString := []map[string]string{}
 
 	for i := 0; i < len(listMapAny); i++ {
-		mapString := maputils.MapStringAnyToMapStringString(listMapAny[i])
+		mapString := cast.ToStringMapString(listMapAny[i])
 		listMapString = append(listMapString, mapString)
 	}
 
