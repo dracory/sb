@@ -2,8 +2,6 @@ module github.com/dracory/sb
 
 go 1.24.0
 
-toolchain go1.24.5
-
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
