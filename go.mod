@@ -1,4 +1,4 @@
-module github.com/gouniverse/sb
+module github.com/dracory/sb
 
 go 1.23.3
 

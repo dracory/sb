@@ -1,8 +1,8 @@
-# SB <a href="https://gitpod.io/#https://github.com/gouniverse/sb" style="float:right:"><img src="https://gitpod.io/button/open-in-gitpod.svg" alt="Open in Gitpod" loading="lazy"></a>
+# SB <a href="https://gitpod.io/#https://github.com/dracory/sb" style="float:right:"><img src="https://gitpod.io/button/open-in-gitpod.svg" alt="Open in Gitpod" loading="lazy"></a>
 
-![tests](https://github.com/gouniverse/sb/workflows/tests/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gouniverse/sb)](https://goreportcard.com/report/github.com/gouniverse/sb)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/gouniverse/sb)](https://pkg.go.dev/github.com/gouniverse/sb)
+![tests](https://github.com/dracory/sb/workflows/tests/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dracory/sb)](https://goreportcard.com/report/github.com/dracory/sb)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/dracory/sb)](https://pkg.go.dev/github.com/dracory/sb)
 
 A simplified SQL builder (with limited functionality).
 
@@ -14,14 +14,14 @@ Includes a wrapper for the mainstream DB package to allow transparent working wi
 ## Installation
 
 ```ssh
-go get -u github.com/gouniverse/sb
+go get -u github.com/dracory/sb
 ```
 
 
 ## Example Create Table SQL
 
 ```go
-import "github.com/gouniverse/sb"
+import "github.com/dracory/sb"
 
 sql := sb.NewBuilder(DIALECT_MYSQL).
 	Table("users").
