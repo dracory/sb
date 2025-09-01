@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gouniverse/base/database"
+	"github.com/dracory/database"
 )
 
 // TableColumnExists checks if a column exists in a table for various database types.

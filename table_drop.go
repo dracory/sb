@@ -3,7 +3,7 @@ package sb
 import (
 	"errors"
 
-	"github.com/gouniverse/base/database"
+	"github.com/dracory/database"
 )
 
 func TableDropSql(ctx database.QueryableContext, tableName string) (string, error) {

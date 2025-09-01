@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gouniverse/base/database"
+	"github.com/dracory/database"
 )
 
 func TestTableColumnExistsMySQL(t *testing.T) {

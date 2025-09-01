@@ -12,24 +12,25 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
-	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
-	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	modernc.org/libc v1.61.13 // indirect
+	modernc.org/libc v1.65.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.8.2 // indirect
+	modernc.org/memory v1.11.0 // indirect
 )
 
 require (
+	github.com/dracory/database v0.2.0
 	github.com/dracory/uid v1.7.0
 	github.com/georgysavva/scany v1.2.3
 	github.com/go-sql-driver/mysql v1.9.0
-	github.com/gouniverse/base v0.8.1
 	github.com/gouniverse/maputils v0.7.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/samber/lo v1.49.1
-	github.com/spf13/cast v1.7.1
-	modernc.org/sqlite v1.36.0
+	github.com/spf13/cast v1.9.2
+	modernc.org/sqlite v1.38.0
 )

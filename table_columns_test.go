@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/gouniverse/base/database"
+	"github.com/dracory/database"
 
 	// _ "github.com/mattn/go-sqlite3"
 	_ "modernc.org/sqlite"

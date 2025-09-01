@@ -3,7 +3,7 @@ package sb
 import (
 	"database/sql"
 
-	"github.com/gouniverse/base/database"
+	"github.com/dracory/database"
 )
 
 func TableCreateSql(db *sql.DB, tableName string, columns []Column) string {
