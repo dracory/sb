@@ -14,7 +14,7 @@ import (
 	"github.com/dracory/database"
 	"github.com/dracory/sb"
 
-	_ "github.com/glebarez/sqlite"
+	_ "modernc.org/sqlite"
 )
 
 var TestsWithMySQL = true

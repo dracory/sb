@@ -117,7 +117,7 @@ err := myDb.Exec(sql)
 ## Example Transaction
 
 ```go
-import _ "github.com/glebarez/sqlite"
+import _ "modernc.org/sqlite"
 
 myDb = sb.NewDatabaseFromDriver("sqlite3", "test.db")
 

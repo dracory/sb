@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dracory/sb"
-	_ "github.com/glebarez/sqlite"
+	_ "modernc.org/sqlite"
 )
 
 func TestDatabaseDriverName(t *testing.T) {
