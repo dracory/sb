@@ -13,8 +13,7 @@ import (
 
 	"github.com/dracory/database"
 
-	// _ "github.com/mattn/go-sqlite3"
-	_ "modernc.org/sqlite"
+	_ "github.com/glebarez/sqlite"
 )
 
 var TestsWithMySQL = true

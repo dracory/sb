@@ -3,12 +3,11 @@ package sb
 import (
 	"testing"
 
-	// _ "github.com/glebarez/go-sqlite"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/sqlite"
 )
 
 func TestNewDatabaseFromDriver(t *testing.T) {
-	db, err := NewDatabaseFromDriver("sqlite3", "file:test_newdatabase_from_driver.db?cache=shared&mode=memory")
+	db, err := NewDatabaseFromDriver("sqlite", "file:test_newdatabase_from_driver.db?cache=shared&mode=memory")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}

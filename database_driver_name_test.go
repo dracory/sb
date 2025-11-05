@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/sqlite"
 )
 
 func TestDatabaseDriverName(t *testing.T) {
-	conn, err := sql.Open("sqlite3", "test_newdatabase.db")
+	conn, err := sql.Open("sqlite", "test_newdatabase.db")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}

@@ -8,7 +8,7 @@ Last updated at: 2025-07-22
 - Database drivers:
   - MySQL: `github.com/go-sql-driver/mysql`
   - PostgreSQL: `github.com/lib/pq`
-  - SQLite: `github.com/mattn/go-sqlite3` and `modernc.org/sqlite`
+  - SQLite: `"github.com/glebarez/sqlite"`
 - Additional utility packages:
   - `github.com/samber/lo` for functional programming helpers
   - `github.com/gouniverse/*` for various utility functions
@@ -31,7 +31,7 @@ Last updated at: 2025-07-22
 - Database drivers:
   - `github.com/go-sql-driver/mysql` for MySQL
   - `github.com/lib/pq` for PostgreSQL
-  - `github.com/mattn/go-sqlite3` and `modernc.org/sqlite` for SQLite
+  - `_ "github.com/glebarez/sqlite"` for SQLite
 
 ### Utility Dependencies
 - `github.com/samber/lo` - Functional programming helpers

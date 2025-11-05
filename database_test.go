@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/sqlite"
 )
 
 func TestNewDatabase(t *testing.T) {
-	conn, err := sql.Open("sqlite3", "test_new_database.db")
+	conn, err := sql.Open("sqlite", "test_new_database.db")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}

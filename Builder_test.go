@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/sqlite"
 )
 
 func initSqliteDB(filepath string) (DatabaseInterface, error) {
@@ -20,7 +20,7 @@ func initSqliteDB(filepath string) (DatabaseInterface, error) {
 		return nil, err
 	}
 
-	sqlDB, err := sql.Open("sqlite3", filepath)
+	sqlDB, err := sql.Open("sqlite", filepath)
 
 	if err != nil {
 		return nil, err
@@ -1159,7 +1159,7 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 	}
 
 	// Test that the generated SQL actually works with SQLite
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open SQLite database: %v", err)
 	}
@@ -1205,7 +1205,7 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 		}
 
 		if id != expectedData[i].id || name != expectedData[i].name {
-			t.Fatalf("Row %d: expected id=%d, name=%s but got id=%d, name=%s", 
+			t.Fatalf("Row %d: expected id=%d, name=%s but got id=%d, name=%s",
 				i, expectedData[i].id, expectedData[i].name, id, name)
 		}
 		i++
