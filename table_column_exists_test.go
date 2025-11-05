@@ -1,10 +1,11 @@
-package sb
+package sb_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/dracory/database"
+	"github.com/dracory/sb"
 )
 
 func TestTableColumnExistsMySQL(t *testing.T) {
@@ -23,7 +24,7 @@ func TestTableColumnExistsMySQL(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	exists, err := TableColumnExists(database.Context(context.Background(), db), "test_table_columns", "id")
+	exists, err := sb.TableColumnExists(database.Context(context.Background(), db), "test_table_columns", "id")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
@@ -48,7 +49,7 @@ func TestTableColumnsExistsSQLite(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	exists, err := TableColumnExists(database.Context(context.Background(), db), "test_table_columns", "id")
+	exists, err := sb.TableColumnExists(database.Context(context.Background(), db), "test_table_columns", "id")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}

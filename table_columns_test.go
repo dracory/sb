@@ -1,4 +1,4 @@
-package sb
+package sb_test
 
 import (
 	"context"
@@ -12,13 +12,14 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/dracory/database"
+	"github.com/dracory/sb"
 
 	_ "github.com/glebarez/sqlite"
 )
 
 var TestsWithMySQL = true
 
-func initMySQLWithTable(tableName string, columns []Column) (db *sql.DB, err error) {
+func initMySQLWithTable(tableName string, columns []sb.Column) (db *sql.DB, err error) {
 	host := os.Getenv("MYSQL_HOST")
 	port := os.Getenv("MYSQL_PORT")
 	dbUser := os.Getenv("MYSQL_USER")
@@ -46,13 +47,13 @@ func initMySQLWithTable(tableName string, columns []Column) (db *sql.DB, err err
 		return nil, err
 	}
 
-	err = TableDropIfExists(database.Context(context.Background(), db), tableName)
+	err = sb.TableDropIfExists(database.Context(context.Background(), db), tableName)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = TableCreate(db, tableName, columns)
+	err = sb.TableCreate(db, tableName, columns)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func initMySQLWithTable(tableName string, columns []Column) (db *sql.DB, err err
 	return db, nil
 }
 
-func initSQLiteWithTable(tableName string, columns []Column) (db *sql.DB, err error) {
+func initSQLiteWithTable(tableName string, columns []sb.Column) (db *sql.DB, err error) {
 	db, err = database.Open(database.Options().
 		SetDatabaseType(database.DATABASE_TYPE_SQLITE).
 		SetDatabaseName(":memory:"))
@@ -70,13 +71,13 @@ func initSQLiteWithTable(tableName string, columns []Column) (db *sql.DB, err er
 		return nil, err
 	}
 
-	err = TableDropIfExists(database.Context(context.Background(), db), tableName)
+	err = sb.TableDropIfExists(database.Context(context.Background(), db), tableName)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = TableCreate(db, tableName, columns)
+	err = sb.TableCreate(db, tableName, columns)
 
 	if err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func TestTableColumnsMySQL(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	columns, err = TableColumns(database.Context(context.Background(), db), "test_table_columns", true)
+	columns, err = sb.TableColumns(database.Context(context.Background(), db), "test_table_columns", true)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -121,19 +122,19 @@ func TestTableColumnsMySQL(t *testing.T) {
 		Default      string
 		isUnique     bool
 	}{
-		{"id", COLUMN_TYPE_STRING, true, 40, 0, false, "", false},
-		{"title", COLUMN_TYPE_STRING, false, 100, 0, false, "", true},
-		{"image", COLUMN_TYPE_BLOB, false, 0, 0, false, "", false},
-		{"price", COLUMN_TYPE_DECIMAL, false, 0, 0, false, "", false},
-		{"price_custom", COLUMN_TYPE_DECIMAL, false, 12, 10, false, "", false},
-		{"short_description", COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
-		{"long_description", COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
-		{"created_at", COLUMN_TYPE_DATETIME, false, 0, 0, false, "", false},
-		{"deleted_at", COLUMN_TYPE_DATETIME, false, 0, 0, true, "", false},
+		{"id", sb.COLUMN_TYPE_STRING, true, 40, 0, false, "", false},
+		{"title", sb.COLUMN_TYPE_STRING, false, 100, 0, false, "", true},
+		{"image", sb.COLUMN_TYPE_BLOB, false, 0, 0, false, "", false},
+		{"price", sb.COLUMN_TYPE_DECIMAL, false, 0, 0, false, "", false},
+		{"price_custom", sb.COLUMN_TYPE_DECIMAL, false, 12, 10, false, "", false},
+		{"short_description", sb.COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
+		{"long_description", sb.COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
+		{"created_at", sb.COLUMN_TYPE_DATETIME, false, 0, 0, false, "", false},
+		{"deleted_at", sb.COLUMN_TYPE_DATETIME, false, 0, 0, true, "", false},
 	}
 
 	for _, expected := range expecteds {
-		column, found := lo.Find(columns, func(column Column) bool {
+		column, found := lo.Find(columns, func(column sb.Column) bool {
 			return column.Name == expected.columnName
 		})
 
@@ -162,7 +163,7 @@ func TestTableColumnsSQLite(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	columns, err = TableColumns(database.Context(context.Background(), db), "test_table_columns", true)
+	columns, err = sb.TableColumns(database.Context(context.Background(), db), "test_table_columns", true)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -182,19 +183,19 @@ func TestTableColumnsSQLite(t *testing.T) {
 		Default      string
 		isUnique     bool
 	}{
-		{"id", COLUMN_TYPE_STRING, true, 40, 0, false, "", false},
-		{"title", COLUMN_TYPE_STRING, false, 100, 0, false, "", true},
-		{"image", COLUMN_TYPE_BLOB, false, 0, 0, false, "", false},
-		{"price", COLUMN_TYPE_DECIMAL, false, 0, 0, false, "", false},
-		{"price_custom", COLUMN_TYPE_DECIMAL, false, 12, 10, false, "", false},
-		{"short_description", COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
-		{"long_description", COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
-		{"created_at", COLUMN_TYPE_DATETIME, false, 0, 0, false, "", false},
-		{"deleted_at", COLUMN_TYPE_DATETIME, false, 0, 0, true, "", false},
+		{"id", sb.COLUMN_TYPE_STRING, true, 40, 0, false, "", false},
+		{"title", sb.COLUMN_TYPE_STRING, false, 100, 0, false, "", true},
+		{"image", sb.COLUMN_TYPE_BLOB, false, 0, 0, false, "", false},
+		{"price", sb.COLUMN_TYPE_DECIMAL, false, 0, 0, false, "", false},
+		{"price_custom", sb.COLUMN_TYPE_DECIMAL, false, 12, 10, false, "", false},
+		{"short_description", sb.COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
+		{"long_description", sb.COLUMN_TYPE_TEXT, false, 0, 0, false, "", false},
+		{"created_at", sb.COLUMN_TYPE_DATETIME, false, 0, 0, false, "", false},
+		{"deleted_at", sb.COLUMN_TYPE_DATETIME, false, 0, 0, true, "", false},
 	}
 
 	for _, expected := range expecteds {
-		column, found := lo.Find(columns, func(column Column) bool {
+		column, found := lo.Find(columns, func(column sb.Column) bool {
 			return column.Name == expected.columnName
 		})
 
@@ -208,49 +209,49 @@ func TestTableColumnsSQLite(t *testing.T) {
 	}
 }
 
-func _TestTableColumns_columns() []Column {
-	columns := []Column{
+func _TestTableColumns_columns() []sb.Column {
+	columns := []sb.Column{
 		{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		},
 		{
 			Name:   "title",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 100,
 			Unique: true,
 		},
 		{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		},
 		{
 			Name: "price",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		},
 		{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		},
 		{
 			Name: "short_description",
-			Type: COLUMN_TYPE_TEXT,
+			Type: sb.COLUMN_TYPE_TEXT,
 		},
 		{
 			Name: "long_description",
-			Type: COLUMN_TYPE_TEXT,
+			Type: sb.COLUMN_TYPE_TEXT,
 		},
 		{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		},
 		{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		},
 	}

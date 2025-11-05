@@ -170,26 +170,6 @@ func tableColumnsSqlite(ctx database.QueryableContext, tableName string, commoni
 	return columns, nil
 }
 
-func rawColumnProcess(columnType string) (scolumnType string, length string, decimals string) {
-	if !strings.Contains(columnType, "(") {
-		return columnType, "", ""
-	}
-
-	splitByParen := strings.Split(columnType, "(")
-	columnType = strings.TrimSpace(splitByParen[0])
-	props := strings.TrimRight(splitByParen[1], ")")
-
-	if strings.Contains(props, ",") {
-		splitByComma := strings.Split(props, ",")
-		length = strings.TrimSpace(splitByComma[0])
-		decimals = strings.TrimSpace(splitByComma[1])
-	} else {
-		length = strings.TrimSpace(props)
-	}
-
-	return columnType, length, decimals
-}
-
 func isNumeric(str string) bool {
 	for _, char := range str {
 		if !(char >= '0' && char <= '9' || char == '.') {

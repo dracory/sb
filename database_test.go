@@ -1,10 +1,11 @@
-package sb
+package sb_test
 
 import (
 	"database/sql"
 	"reflect"
 	"testing"
 
+	"github.com/dracory/sb"
 	_ "github.com/glebarez/sqlite"
 )
 
@@ -13,7 +14,7 @@ func TestNewDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
-	db := NewDatabase(conn, DIALECT_SQLITE)
+	db := sb.NewDatabase(conn, sb.DIALECT_SQLITE)
 	if db == nil {
 		t.Fatal("Database MUST NOT BE NIL")
 	}
@@ -26,7 +27,7 @@ func TestNewDatabase(t *testing.T) {
 }
 
 func TestDatabase_SqlLog(t *testing.T) {
-	db := NewDatabase(nil, DIALECT_SQLITE)
+	db := sb.NewDatabase(nil, sb.DIALECT_SQLITE)
 
 	if !reflect.DeepEqual(db.SqlLog(), []map[string]string{}) {
 		t.Fatal("SqlLog must be empty")
@@ -34,7 +35,7 @@ func TestDatabase_SqlLog(t *testing.T) {
 }
 
 func TestDatabase_SqlLogEmpty(t *testing.T) {
-	db := NewDatabase(nil, DIALECT_SQLITE)
+	db := sb.NewDatabase(nil, sb.DIALECT_SQLITE)
 
 	if len(db.SqlLog()) != 0 {
 		t.Fatal("SqlLog must be empty")

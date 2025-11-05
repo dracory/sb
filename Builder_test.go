@@ -1,4 +1,4 @@
-package sb
+package sb_test
 
 import (
 	"database/sql"
@@ -6,10 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dracory/sb"
 	_ "github.com/glebarez/sqlite"
 )
 
-func initSqliteDB(filepath string) (DatabaseInterface, error) {
+func initSqliteDB(filepath string) (sb.DatabaseInterface, error) {
 	if filepath == "" {
 		return nil, errors.New("filepath is required")
 	}
@@ -26,45 +27,45 @@ func initSqliteDB(filepath string) (DatabaseInterface, error) {
 		return nil, err
 	}
 
-	return NewDatabase(sqlDB, DIALECT_SQLITE), nil
+	return sb.NewDatabase(sqlDB, sb.DIALECT_SQLITE), nil
 }
 
 func TestBuilderTableCreateMssql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MSSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -76,9 +77,9 @@ func TestBuilderTableCreateMssql(t *testing.T) {
 }
 
 func TestBuilderTableSelectFull(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
@@ -91,49 +92,49 @@ func TestBuilderTableSelectFull(t *testing.T) {
 }
 
 func TestBuilderTableCreateMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "short_description",
-			Type: COLUMN_TYPE_TEXT,
+			Type: sb.COLUMN_TYPE_TEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "long_description",
-			Type: COLUMN_TYPE_LONGTEXT,
+			Type: sb.COLUMN_TYPE_LONGTEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -145,49 +146,49 @@ func TestBuilderTableCreateMysql(t *testing.T) {
 }
 
 func TestBuilderTableCreatePostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "short_description",
-			Type: COLUMN_TYPE_TEXT,
+			Type: sb.COLUMN_TYPE_TEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "long_description",
-			Type: COLUMN_TYPE_LONGTEXT,
+			Type: sb.COLUMN_TYPE_LONGTEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -199,49 +200,49 @@ func TestBuilderTableCreatePostgres(t *testing.T) {
 }
 
 func TestBuilderTableCreateSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "short_description",
-			Type: COLUMN_TYPE_TEXT,
+			Type: sb.COLUMN_TYPE_TEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "long_description",
-			Type: COLUMN_TYPE_LONGTEXT,
+			Type: sb.COLUMN_TYPE_LONGTEXT,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -253,35 +254,35 @@ func TestBuilderTableCreateSqlite(t *testing.T) {
 }
 
 func TestBuilderTableCreateIfNotExistsMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		CreateIfNotExists()
@@ -293,35 +294,35 @@ func TestBuilderTableCreateIfNotExistsMysql(t *testing.T) {
 }
 
 func TestBuilderTableCreateIfNotExistsPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		CreateIfNotExists()
@@ -333,35 +334,35 @@ func TestBuilderTableCreateIfNotExistsPostgres(t *testing.T) {
 }
 
 func TestBuilderTableCreateIfNotExistsSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "image",
-			Type: COLUMN_TYPE_BLOB,
+			Type: sb.COLUMN_TYPE_BLOB,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "price_default",
-			Type: COLUMN_TYPE_DECIMAL,
+			Type: sb.COLUMN_TYPE_DECIMAL,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "price_custom",
-			Type:     COLUMN_TYPE_DECIMAL,
+			Type:     sb.COLUMN_TYPE_DECIMAL,
 			Length:   12,
 			Decimals: 10,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		CreateIfNotExists()
@@ -373,9 +374,9 @@ func TestBuilderTableCreateIfNotExistsSqlite(t *testing.T) {
 }
 
 func TestBuilderTableColumnChangeMysql(t *testing.T) {
-	sql, err := NewBuilder(DIALECT_MYSQL).TableColumnChange("users", Column{
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).TableColumnChange("users", sb.Column{
 		Name:   "email",
-		Type:   COLUMN_TYPE_STRING,
+		Type:   sb.COLUMN_TYPE_STRING,
 		Length: 255,
 		Unique: true,
 	})
@@ -391,9 +392,9 @@ func TestBuilderTableColumnChangeMysql(t *testing.T) {
 }
 
 func TestBuilderTableColumnChangePostgres(t *testing.T) {
-	sql, err := NewBuilder(DIALECT_POSTGRES).TableColumnChange("users", Column{
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).TableColumnChange("users", sb.Column{
 		Name:   "email",
-		Type:   COLUMN_TYPE_STRING,
+		Type:   sb.COLUMN_TYPE_STRING,
 		Length: 255,
 		Unique: true,
 	})
@@ -409,9 +410,9 @@ func TestBuilderTableColumnChangePostgres(t *testing.T) {
 }
 
 func TestBuilderTableColumnChangeSqlite(t *testing.T) {
-	sql, err := NewBuilder(DIALECT_SQLITE).TableColumnChange("users", Column{
+	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).TableColumnChange("users", sb.Column{
 		Name:   "email",
-		Type:   COLUMN_TYPE_STRING,
+		Type:   sb.COLUMN_TYPE_STRING,
 		Length: 255,
 		Unique: true,
 	})
@@ -427,9 +428,9 @@ func TestBuilderTableColumnChangeSqlite(t *testing.T) {
 }
 
 func TestBuilderViewCreateMysql(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -442,9 +443,9 @@ func TestBuilderViewCreateMysql(t *testing.T) {
 }
 
 func TestBuilderViewCreatePostgresql(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -457,9 +458,9 @@ func TestBuilderViewCreatePostgresql(t *testing.T) {
 }
 
 func TestBuilderViewCreateSqlite(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -472,9 +473,9 @@ func TestBuilderViewCreateSqlite(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsMysql(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -487,9 +488,9 @@ func TestBuilderViewCreateIfNotExistsMysql(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsPostgresql(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -502,9 +503,9 @@ func TestBuilderViewCreateIfNotExistsPostgresql(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsSqlite(t *testing.T) {
-	selectSQL := NewBuilder(DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
 
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		View("v_users").
 		ViewColumns([]string{"first_name", "last_name"}).
 		ViewSQL(selectSQL).
@@ -517,7 +518,7 @@ func TestBuilderViewCreateIfNotExistsSqlite(t *testing.T) {
 }
 
 func TestBuilderCreateIndexMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		CreateIndex("idx_users_id", "id")
 
@@ -528,7 +529,7 @@ func TestBuilderCreateIndexMysql(t *testing.T) {
 }
 
 func TestBuilderCreateIndexPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		CreateIndex("idx_users_id", "id")
 
@@ -539,7 +540,7 @@ func TestBuilderCreateIndexPostgres(t *testing.T) {
 }
 
 func TestBuilderCreateIndexSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		CreateIndex("idx_users_id", "id")
 
@@ -558,27 +559,27 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 
 	defer db.Close()
 
-	sqlTableCreate := NewBuilder(DIALECT_MYSQL).
+	sqlTableCreate := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -593,10 +594,10 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sqlColumnRename, err := NewBuilder(DIALECT_SQLITE).
-		TableColumnAdd("users", Column{
+	sqlColumnRename, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		TableColumnAdd("users", sb.Column{
 			Name:     "name",
-			Type:     COLUMN_TYPE_STRING,
+			Type:     sb.COLUMN_TYPE_STRING,
 			Nullable: true,
 		})
 
@@ -619,7 +620,7 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sql := NewBuilder(DIALECT_SQLITE).Table("users").Select([]string{"id", "email", "name", "created_at", "deleted_at"})
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "email", "name", "created_at", "deleted_at"})
 
 	rows, err := db.Query(sql)
 
@@ -641,27 +642,27 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 
 	defer db.Close()
 
-	sqlTableCreate := NewBuilder(DIALECT_MYSQL).
+	sqlTableCreate := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Column(Column{
+		Column(sb.Column{
 			Name:       "id",
-			Type:       COLUMN_TYPE_STRING,
+			Type:       sb.COLUMN_TYPE_STRING,
 			Length:     40,
 			PrimaryKey: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:   "email",
-			Type:   COLUMN_TYPE_STRING,
+			Type:   sb.COLUMN_TYPE_STRING,
 			Length: 255,
 			Unique: true,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name: "created_at",
-			Type: COLUMN_TYPE_DATETIME,
+			Type: sb.COLUMN_TYPE_DATETIME,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "deleted_at",
-			Type:     COLUMN_TYPE_DATETIME,
+			Type:     sb.COLUMN_TYPE_DATETIME,
 			Nullable: true,
 		}).
 		Create()
@@ -676,7 +677,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sqlColumnRename, err := NewBuilder(DIALECT_SQLITE).
+	sqlColumnRename, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		TableColumnRename("users", "email", "name")
 
 	if err != nil {
@@ -698,7 +699,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sql := NewBuilder(DIALECT_SQLITE).Table("users").Select([]string{"id", "name", "created_at", "deleted_at"})
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "name", "created_at", "deleted_at"})
 
 	rows, err := db.Query(sql)
 
@@ -712,7 +713,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 }
 
 func TestBuilderTableDropMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Drop()
 
@@ -723,7 +724,7 @@ func TestBuilderTableDropMysql(t *testing.T) {
 }
 
 func TestBuilderTableDropPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Drop()
 
@@ -734,7 +735,7 @@ func TestBuilderTableDropPostgres(t *testing.T) {
 }
 
 func TestBuilderTableDropSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Drop()
 
@@ -745,7 +746,7 @@ func TestBuilderTableDropSqlite(t *testing.T) {
 }
 
 func TestBuilderTableDeleteMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Delete()
 
@@ -756,14 +757,14 @@ func TestBuilderTableDeleteMysql(t *testing.T) {
 }
 
 func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(Where{
+		Where(sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Tom",
 		}).
-		Where(Where{
+		Where(sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Sam",
@@ -780,7 +781,7 @@ func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
 }
 
 func TestBuilderTableDeleteSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Delete()
 
@@ -791,14 +792,14 @@ func TestBuilderTableDeleteSqlite(t *testing.T) {
 }
 
 func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(Where{
+		Where(sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Tom",
 		}).
-		Where(Where{
+		Where(sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Sam",
@@ -813,7 +814,7 @@ func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
 }
 
 func TestBuilderTableSelectMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Select([]string{})
 
@@ -824,7 +825,7 @@ func TestBuilderTableSelectMysql(t *testing.T) {
 }
 
 func TestBuilderTableSelectPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Select([]string{})
 
@@ -835,7 +836,7 @@ func TestBuilderTableSelectPostgres(t *testing.T) {
 }
 
 func TestBuilderTableSelectSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{})
 
@@ -846,13 +847,13 @@ func TestBuilderTableSelectSqlite(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
-		GroupBy(GroupBy{Column: "passport"}).
+		GroupBy(sb.GroupBy{Column: "passport"}).
 		Select([]string{"id", "first_name", "last_name"})
 
 	expected := "SELECT `id`, `first_name`, `last_name` FROM `users` WHERE `first_name` <> \"Jane\" GROUP BY `passport` ORDER BY `first_name` ASC LIMIT 10 OFFSET 20;"
@@ -862,13 +863,13 @@ func TestBuilderTableSelectFullMysql(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
-		GroupBy(GroupBy{Column: "passport"}).
+		GroupBy(sb.GroupBy{Column: "passport"}).
 		Select([]string{"id", "first_name", "last_name"})
 
 	expected := `SELECT "id", "first_name", "last_name" FROM "users" WHERE "first_name" <> "Jane" GROUP BY "passport" ORDER BY "first_name" ASC LIMIT 10 OFFSET 20;`
@@ -878,13 +879,13 @@ func TestBuilderTableSelectFullPostgres(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
-		GroupBy(GroupBy{Column: "passport"}).
+		GroupBy(sb.GroupBy{Column: "passport"}).
 		Select([]string{"id", "first_name", "last_name"})
 
 	expected := `SELECT "id", "first_name", "last_name" FROM "users" WHERE "first_name" <> 'Jane' GROUP BY "passport" ORDER BY "first_name" ASC LIMIT 10 OFFSET 20;`
@@ -894,7 +895,7 @@ func TestBuilderTableSelectFullSqlite(t *testing.T) {
 }
 
 func TestBuilderTableInsertMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Limit(1).
 		Insert(map[string]string{
@@ -909,7 +910,7 @@ func TestBuilderTableInsertMysql(t *testing.T) {
 }
 
 func TestBuilderTableInsertPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Limit(1).
 		Insert(map[string]string{
@@ -924,7 +925,7 @@ func TestBuilderTableInsertPostgres(t *testing.T) {
 }
 
 func TestBuilderTableInsertSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Limit(1).
 		Insert(map[string]string{
@@ -939,9 +940,9 @@ func TestBuilderTableInsertSqlite(t *testing.T) {
 }
 
 func TestBuilderTableColumnCreateSqlite(t *testing.T) {
-	sql, err := NewBuilder(DIALECT_SQLITE).TableColumnAdd("table_name", Column{
+	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).TableColumnAdd("table_name", sb.Column{
 		Name:     "name",
-		Type:     COLUMN_TYPE_STRING,
+		Type:     sb.COLUMN_TYPE_STRING,
 		Length:   255,
 		Nullable: true,
 	})
@@ -957,9 +958,9 @@ func TestBuilderTableColumnCreateSqlite(t *testing.T) {
 }
 
 func TestBuilderTableUpdateMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(Where{
+		Where(sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -977,9 +978,9 @@ func TestBuilderTableUpdateMysql(t *testing.T) {
 }
 
 func TestBuilderTableUpdatePostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(Where{
+		Where(sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -997,9 +998,9 @@ func TestBuilderTableUpdatePostgres(t *testing.T) {
 }
 
 func TestBuilderTableUpdateSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(Where{
+		Where(sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -1017,9 +1018,9 @@ func TestBuilderTableUpdateSqlite(t *testing.T) {
 }
 
 func TestBuilderTableSelectMysqlInj(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		Where(sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := "SELECT * FROM `users` WHERE `id` = \"58\"\" OR 1 = 1;--\";"
@@ -1029,9 +1030,9 @@ func TestBuilderTableSelectMysqlInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectPostgreslInj(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		Where(sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := `SELECT * FROM "users" WHERE "id" = "58"" OR 1 = 1;--";`
@@ -1041,9 +1042,9 @@ func TestBuilderTableSelectPostgreslInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectSqlitelInj(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(Where{Column: "id", Operator: "=", Value: "58' OR 1 = 1;--"}).
+		Where(sb.Where{Column: "id", Operator: "=", Value: "58' OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := `SELECT * FROM "users" WHERE "id" = '58'' OR 1 = 1;--';`
@@ -1053,7 +1054,7 @@ func TestBuilderTableSelectSqlitelInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectAll(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{"*"})
 
@@ -1064,7 +1065,7 @@ func TestBuilderTableSelectAll(t *testing.T) {
 }
 
 func TestBuilderTableSelectFn(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{"MIN(created_at)"})
 
@@ -1075,7 +1076,7 @@ func TestBuilderTableSelectFn(t *testing.T) {
 }
 
 func TestBuilderViewDropMysql(t *testing.T) {
-	sql := NewBuilder(DIALECT_MYSQL).
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		View("v_users").
 		Drop()
 
@@ -1086,7 +1087,7 @@ func TestBuilderViewDropMysql(t *testing.T) {
 }
 
 func TestBuilderViewDropPostgres(t *testing.T) {
-	sql := NewBuilder(DIALECT_POSTGRES).
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		View("v_users").
 		Drop()
 
@@ -1097,7 +1098,7 @@ func TestBuilderViewDropPostgres(t *testing.T) {
 }
 
 func TestBuilderViewDropSqlite(t *testing.T) {
-	sql := NewBuilder(DIALECT_SQLITE).
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		View("v_users").
 		Drop()
 
@@ -1110,11 +1111,11 @@ func TestBuilderViewDropSqlite(t *testing.T) {
 func TestBuilder_TableColumnChange(t *testing.T) {
 	type args struct {
 		tableName string
-		column    Column
+		column    sb.Column
 	}
 	tests := []struct {
 		name          string
-		b             *Builder
+		b             *sb.Builder
 		args          args
 		wantSqlString string
 		wantErr       bool
@@ -1137,18 +1138,18 @@ func TestBuilder_TableColumnChange(t *testing.T) {
 
 func TestSQLiteAutoIncrementOrder(t *testing.T) {
 	// Test that SQLite generates correct PRIMARY KEY AUTOINCREMENT order
-	sqlQuery := NewBuilder(DIALECT_SQLITE).
+	sqlQuery := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("test_table").
-		Column(Column{
+		Column(sb.Column{
 			Name:          "id",
-			Type:          COLUMN_TYPE_INTEGER,
+			Type:          sb.COLUMN_TYPE_INTEGER,
 			PrimaryKey:    true,
 			AutoIncrement: true,
 			Nullable:      false,
 		}).
-		Column(Column{
+		Column(sb.Column{
 			Name:     "name",
-			Type:     COLUMN_TYPE_STRING,
+			Type:     sb.COLUMN_TYPE_STRING,
 			Nullable: false,
 		}).
 		CreateIfNotExists()

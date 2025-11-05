@@ -1,13 +1,14 @@
-package sb
+package sb_test
 
 import (
 	"testing"
 
+	"github.com/dracory/sb"
 	_ "github.com/glebarez/sqlite"
 )
 
 func TestNewDatabaseFromDriver(t *testing.T) {
-	db, err := NewDatabaseFromDriver("sqlite", "file:test_newdatabase_from_driver.db?cache=shared&mode=memory")
+	db, err := sb.NewDatabaseFromDriver("sqlite", "file:test_newdatabase_from_driver.db?cache=shared&mode=memory")
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
