@@ -29,6 +29,10 @@ func TableDropIfExistsSql(ctx database.QueryableContext, tableName string) (stri
 func TableDrop(ctx database.QueryableContext, tableName string) error {
 	sqlTableDrop, err := TableDropSql(ctx, tableName)
 
+	if err != nil {
+		return err
+	}
+
 	_, err = ctx.Queryable().ExecContext(ctx, sqlTableDrop)
 
 	return err

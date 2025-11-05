@@ -14,11 +14,12 @@ func (b *Builder) quote(s string, quoteType string) string {
 	}
 
 	if quoteType == "value" {
-		if b.Dialect == DIALECT_MYSQL {
+		switch b.Dialect {
+		case DIALECT_MYSQL:
 			return `"` + b.escapeMysql(s) + `"`
-		} else if b.Dialect == DIALECT_POSTGRES {
+		case DIALECT_POSTGRES:
 			return `"` + b.escapePostgres(s) + `"`
-		} else if b.Dialect == DIALECT_SQLITE {
+		case DIALECT_SQLITE:
 			return `'` + b.escapeSqlite(s) + `'`
 		}
 		return s
