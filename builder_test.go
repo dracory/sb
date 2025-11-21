@@ -558,7 +558,9 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	sqlTableCreate := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
@@ -641,7 +643,9 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	sqlTableCreate := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
@@ -1165,7 +1169,9 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open SQLite database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	_, err = db.Exec(sqlQuery)
 	if err != nil {
@@ -1183,7 +1189,9 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to query test data: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	expectedData := []struct {
 		id   int

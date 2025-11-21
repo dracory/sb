@@ -18,7 +18,9 @@ func TestTableColumnExistsMySQL(t *testing.T) {
 		return
 	}
 
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -43,7 +45,9 @@ func TestTableColumnsExistsSQLite(t *testing.T) {
 		t.Fatal("Error must be NIL but got: ", err.Error())
 	}
 
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
