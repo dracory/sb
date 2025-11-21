@@ -3,7 +3,6 @@ package sb
 import (
 	"fmt"
 	"strconv"
-	"unsafe"
 )
 
 // ToString converts an interface to string
@@ -46,5 +45,5 @@ func toString(v interface{}) string {
 
 // btos converts bytes to string
 func btos(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
+	return string(b)
 }
