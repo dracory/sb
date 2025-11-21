@@ -27,7 +27,11 @@ SB provides a clean, type-safe SQL builder with these key features:
 sql := sb.NewBuilder(sb.DIALECT_MYSQL).
     Table("users").
     Select([]string{"id", "name", "email"}).
-    Where(sb.Where{"status", "=", "active"}).
+    Where(&sb.Where{
+        Column:   "status",
+        Operator: "=",
+        Value:    "active",
+    }).
     OrderBy("created_at", "DESC").
     Limit(10)
 ```

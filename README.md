@@ -86,7 +86,7 @@ sql := sb.NewBuilder(DIALECT_MYSQL).
 ```go
 sql := sb.NewBuilder(DIALECT_MYSQL).
 	Table("user").
-	Where(sb.Where{
+	Where(&sb.Where{
 		Column: "id",
 		Operator: "==",
 		Value: "1",
