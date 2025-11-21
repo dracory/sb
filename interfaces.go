@@ -122,8 +122,8 @@ type DatabaseInterface interface {
 	Open() (err error)
 	Query(sqlStr string, args ...any) (*sql.Rows, error)
 	RollbackTransaction() (err error)
-	SelectToMapAny(sqlStr string, args ...any) ([]map[string]any, error)
-	SelectToMapString(sqlStr string, args ...any) ([]map[string]string, error)
+	SelectToMapAny(ctx context.Context, sqlStr string, args ...any) ([]map[string]any, error)
+	SelectToMapString(ctx context.Context, sqlStr string, args ...any) ([]map[string]string, error)
 
 	// Tx the transaction
 	Tx() *sql.Tx

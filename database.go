@@ -264,7 +264,7 @@ func (d *Database) RollbackTransaction() (err error) {
 	return err
 }
 
-func (d *Database) SelectToMapAny(sqlStr string, args ...any) ([]map[string]any, error) {
+func (d *Database) SelectToMapAny(ctx context.Context, sqlStr string, args ...any) ([]map[string]any, error) {
 	if d.sqlLogEnabled {
 		if d.sqlLog == nil {
 			d.sqlLog = map[string]string{}
@@ -287,7 +287,11 @@ func (d *Database) SelectToMapAny(sqlStr string, args ...any) ([]map[string]any,
 
 	listMap := []map[string]any{}
 
-	err := sqlscan.Select(context.Background(), d.db, &listMap, sqlStr, args...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	err := sqlscan.Select(ctx, d.db, &listMap, sqlStr, args...)
 	if err != nil {
 		if sqlscan.NotFound(err) {
 			return []map[string]any{}, nil
@@ -299,8 +303,8 @@ func (d *Database) SelectToMapAny(sqlStr string, args ...any) ([]map[string]any,
 	return listMap, nil
 }
 
-func (d *Database) SelectToMapString(sqlStr string, args ...any) ([]map[string]string, error) {
-	listMapAny, err := d.SelectToMapAny(sqlStr, args...)
+func (d *Database) SelectToMapString(ctx context.Context, sqlStr string, args ...any) ([]map[string]string, error) {
+	listMapAny, err := d.SelectToMapAny(ctx, sqlStr, args...)
 
 	if err != nil {
 		return []map[string]string{}, err
