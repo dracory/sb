@@ -2,7 +2,7 @@ package sb_test
 
 import (
 	"context"
-	"database/sql"
+	stdsql "database/sql"
 	"errors"
 	"os"
 	"testing"
@@ -22,7 +22,7 @@ func initSqliteDB(filepath string) (sb.DatabaseInterface, error) {
 		return nil, err
 	}
 
-	sqlDB, err := sql.Open("sqlite", filepath)
+	sqlDB, err := stdsql.Open("sqlite", filepath)
 
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func TestBuilderTableCreateMssql(t *testing.T) {
 func TestBuilderTableSelectFull(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
@@ -764,12 +764,12 @@ func TestBuilderTableDeleteMysql(t *testing.T) {
 func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Tom",
 		}).
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Sam",
@@ -799,12 +799,12 @@ func TestBuilderTableDeleteSqlite(t *testing.T) {
 func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Tom",
 		}).
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "FirstName",
 			Operator: "==",
 			Value:    "Sam",
@@ -854,7 +854,7 @@ func TestBuilderTableSelectSqlite(t *testing.T) {
 func TestBuilderTableSelectFullMysql(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
@@ -870,7 +870,7 @@ func TestBuilderTableSelectFullMysql(t *testing.T) {
 func TestBuilderTableSelectFullPostgres(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
@@ -886,7 +886,7 @@ func TestBuilderTableSelectFullPostgres(t *testing.T) {
 func TestBuilderTableSelectFullSqlite(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
+		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
@@ -965,7 +965,7 @@ func TestBuilderTableColumnCreateSqlite(t *testing.T) {
 func TestBuilderTableUpdateMysql(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -985,7 +985,7 @@ func TestBuilderTableUpdateMysql(t *testing.T) {
 func TestBuilderTableUpdatePostgres(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -1005,7 +1005,7 @@ func TestBuilderTableUpdatePostgres(t *testing.T) {
 func TestBuilderTableUpdateSqlite(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(sb.Where{
+		Where(&sb.Where{
 			Column:   "id",
 			Operator: "==",
 			Value:    "1",
@@ -1025,7 +1025,7 @@ func TestBuilderTableUpdateSqlite(t *testing.T) {
 func TestBuilderTableSelectMysqlInj(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		Where(sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		Where(&sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := "SELECT * FROM `users` WHERE `id` = \"58\"\" OR 1 = 1;--\";"
@@ -1037,7 +1037,7 @@ func TestBuilderTableSelectMysqlInj(t *testing.T) {
 func TestBuilderTableSelectPostgreslInj(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
-		Where(sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		Where(&sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := `SELECT * FROM "users" WHERE "id" = "58"" OR 1 = 1;--";`
@@ -1049,7 +1049,7 @@ func TestBuilderTableSelectPostgreslInj(t *testing.T) {
 func TestBuilderTableSelectSqlitelInj(t *testing.T) {
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
-		Where(sb.Where{Column: "id", Operator: "=", Value: "58' OR 1 = 1;--"}).
+		Where(&sb.Where{Column: "id", Operator: "=", Value: "58' OR 1 = 1;--"}).
 		Select([]string{})
 
 	expected := `SELECT * FROM "users" WHERE "id" = '58'' OR 1 = 1;--';`
@@ -1165,7 +1165,7 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 	}
 
 	// Test that the generated SQL actually works with SQLite
-	db, err := sql.Open("sqlite", ":memory:")
+	db, err := stdsql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open SQLite database: %v", err)
 	}

@@ -403,7 +403,7 @@ func (b *Builder) TableColumnChange(tableName string, column Column) (sqlString 
 }
 
 // TableColumnDrop drops a column from the table
-func (b *Builder) TableColumnDrop(tableName string, columnName string) (sqlString string, err error) {
+func (b *Builder) TableColumnDrop(tableName, columnName string) (sqlString string, err error) {
 	if b.Dialect == DIALECT_MSSQL {
 		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
 		return sqlString, nil
@@ -653,8 +653,12 @@ func (b *Builder) Update(columnValues map[string]string) string {
 	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";"
 }
 
-func (b *Builder) Where(where Where) BuilderInterface {
-	b.sqlWhere = append(b.sqlWhere, where)
+func (b *Builder) Where(where *Where) BuilderInterface {
+	if where == nil {
+		return b
+	}
+
+	b.sqlWhere = append(b.sqlWhere, *where)
 	return b
 }
 

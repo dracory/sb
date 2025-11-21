@@ -2,7 +2,7 @@ package sb
 
 import "strings"
 
-func (b *Builder) quote(s string, quoteType string) string {
+func (b *Builder) quote(s, quoteType string) string {
 	var quoteChar string
 	switch b.Dialect {
 	case DIALECT_MYSQL:

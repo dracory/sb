@@ -29,7 +29,7 @@ import "strings"
 // Note:
 //   - The function is designed to be robust against malformed input, returning the original columnType with empty length and decimals if parsing fails.
 //   - It gracefully handles unexpected formats by returning the original columnType with empty length and decimals.
-func rawColumnProcess(columnType string) (scolumnType string, length string, decimals string) {
+func rawColumnProcess(columnType string) (scolumnType, length, decimals string) {
 	// If the columnType does not contain "(", it returns the columnType as scolumnType with empty length and decimals.
 	if !strings.Contains(columnType, "(") {
 		return columnType, "", ""

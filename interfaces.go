@@ -61,7 +61,7 @@ type BuilderInterface interface {
 	ViewSQL(sql string) BuilderInterface
 
 	// Where sets the where clause
-	Where(where Where) BuilderInterface
+	Where(where *Where) BuilderInterface
 
 	// TableColumnAdd adds a column to the table
 	TableColumnAdd(tableName string, column Column) (sqlString string, err error)
