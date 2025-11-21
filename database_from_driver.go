@@ -12,14 +12,9 @@ func NewDatabaseFromDriver(driverName, dataSourceName string) (DatabaseInterface
 		return nil, errors.New("failed to open DB: " + err.Error())
 	}
 
-	databaseType := driverName
-	if databaseType == "sqlite3" {
-		databaseType = DIALECT_SQLITE
-	}
-
 	return &Database{
 		db:             db,
-		databaseType:   driverName,
+		databaseType:   DatabaseDriverName(db),
 		debug:          false,
 		sqlLogEnabled:  false,
 		sqlLog:         map[string]string{},

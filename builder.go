@@ -494,7 +494,7 @@ func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName stri
  */
 func (b *Builder) Select(columns []string) string {
 	if b.sqlTableName == "" {
-		panic("In method Delete() no table specified to delete from!")
+		panic("In method Select() no table specified to select from!")
 	}
 
 	join := "" // TODO add support for joins
@@ -607,7 +607,7 @@ func (b *Builder) Truncate() string {
  */
 func (b *Builder) Update(columnValues map[string]string) string {
 	if b.sqlTableName == "" {
-		panic("In method Delete() no table specified to delete from!")
+		panic("In method Update() no table specified to update!")
 	}
 
 	join := "" // TODO add support for joins

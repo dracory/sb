@@ -99,18 +99,18 @@ sql := sb.NewBuilder(DIALECT_MYSQL).
 
 1) From existing Go DB instance
 ```
-myDb := sb.NewDatabaseFromDb(sqlDb, DIALECT_MYSQL)
+myDb := sb.NewDatabase(sqlDb, sb.DIALECT_MYSQL)
 ```
 
 3) From driver
 ```
-myDb = sql.NewDatabaseFromDriver("sqlite3", "test.db")
+myDb, err := sb.NewDatabaseFromDriver("sqlite3", "test.db")
 ```
 
 ## Example SQL Execute
 
 ```
-myDb := sb.NewDatabaseFromDb(sqlDb, DIALECT_MYSQL)
+myDb := sb.NewDatabase(sqlDb, sb.DIALECT_MYSQL)
 
 ctx := context.Background()
 

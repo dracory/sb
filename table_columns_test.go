@@ -53,7 +53,7 @@ func initMySQLWithTable(tableName string, columns []sb.Column) (db *sql.DB, err 
 		return nil, err
 	}
 
-	err = sb.TableCreate(db, tableName, columns)
+	err = sb.TableCreate(context.Background(), db, tableName, columns)
 
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func initSQLiteWithTable(tableName string, columns []sb.Column) (db *sql.DB, err
 		return nil, err
 	}
 
-	err = sb.TableCreate(db, tableName, columns)
+	err = sb.TableCreate(context.Background(), db, tableName, columns)
 
 	if err != nil {
 		return nil, err

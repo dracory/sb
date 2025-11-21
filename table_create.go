@@ -1,6 +1,7 @@
 package sb
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/dracory/database"
@@ -18,7 +19,7 @@ func TableCreateSql(db *sql.DB, tableName string, columns []Column) string {
 	return builder.Create()
 }
 
-func TableCreate(db *sql.DB, tableName string, columns []Column) error {
+func TableCreate(ctx context.Context, db *sql.DB, tableName string, columns []Column) error {
 	databaseType := database.DatabaseType(db)
 
 	builder := NewBuilder(databaseType).Table(tableName)
@@ -29,7 +30,11 @@ func TableCreate(db *sql.DB, tableName string, columns []Column) error {
 
 	sqlTable := builder.Create()
 
-	_, err := db.Exec(sqlTable)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_, err := db.ExecContext(ctx, sqlTable)
 
 	return err
 }
