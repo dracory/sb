@@ -110,19 +110,46 @@ type DatabaseInterface interface {
 	// Exec executes a query
 	Exec(sqlStr string, args ...any) (sql.Result, error)
 
+	// IsMssql checks if the database is MSSQL
 	IsMssql() bool
+
+	// IsMysql checks if the database is MySQL
 	IsMysql() bool
+
+	// IsPostgres checks if the database is PostgreSQL
 	IsPostgres() bool
+
+	// IsSqlite checks if the database is SQLite
 	IsSqlite() bool
+
+	// SqlLog returns the SQL log
 	SqlLog() []map[string]string
+
+	// SqlLogEmpty clears the SQL log
 	SqlLogEmpty()
+
+	// SqlLogLen returns the length of the SQL log
 	SqlLogLen() int
+
+	// SqlLogEnable enables or disables the SQL log
 	SqlLogEnable(enable bool)
+
+	// SqlLogShrink shrinks the SQL log to the last n entries
 	SqlLogShrink(leaveLast int)
+
+	// Open opens the database
 	Open() (err error)
+
+	// Query queries the database
 	Query(sqlStr string, args ...any) (*sql.Rows, error)
+
+	// RollbackTransaction rolls back the transaction
 	RollbackTransaction() (err error)
+
+	// SelectToMapAny selects rows from the database and returns them as a map of any
 	SelectToMapAny(ctx context.Context, sqlStr string, args ...any) ([]map[string]any, error)
+
+	// SelectToMapString selects rows from the database and returns them as a map of strings
 	SelectToMapString(ctx context.Context, sqlStr string, args ...any) ([]map[string]string, error)
 
 	// Tx the transaction
