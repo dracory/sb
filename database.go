@@ -154,8 +154,12 @@ func (d *Database) BeginTransactionWithContext(ctx context.Context, opts *sql.Tx
 	return nil
 }
 
-func (d *Database) ExecInTransaction(fn func(d *Database) error) (err error) {
-	err = d.BeginTransaction()
+func (d *Database) ExecInTransaction(ctx context.Context, fn func(d *Database) error) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	err = d.BeginTransactionWithContext(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -178,7 +182,7 @@ func (d *Database) ExecInTransaction(fn func(d *Database) error) (err error) {
 	return
 }
 
-func (d *Database) Exec(sqlStr string, args ...any) (sql.Result, error) {
+func (d *Database) Exec(ctx context.Context, sqlStr string, args ...any) (sql.Result, error) {
 	if d.sqlLogEnabled {
 		if d.sqlLog == nil {
 			d.sqlLog = map[string]string{}
@@ -199,13 +203,17 @@ func (d *Database) Exec(sqlStr string, args ...any) (sql.Result, error) {
 		log.Println(sqlStr)
 	}
 
-	if d.tx != nil {
-		return d.tx.Exec(sqlStr, args...)
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	return d.db.Exec(sqlStr, args...)
+
+	if d.tx != nil {
+		return d.tx.ExecContext(ctx, sqlStr, args...)
+	}
+	return d.db.ExecContext(ctx, sqlStr, args...)
 }
 
-func (d *Database) Query(sqlStr string, args ...any) (*sql.Rows, error) {
+func (d *Database) Query(ctx context.Context, sqlStr string, args ...any) (*sql.Rows, error) {
 	if d.sqlLogEnabled {
 		if d.sqlLog == nil {
 			d.sqlLog = map[string]string{}
@@ -226,10 +234,14 @@ func (d *Database) Query(sqlStr string, args ...any) (*sql.Rows, error) {
 		log.Println(sqlStr)
 	}
 
-	if d.tx != nil {
-		return d.tx.Query(sqlStr, args...)
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	return d.db.Query(sqlStr, args...)
+
+	if d.tx != nil {
+		return d.tx.QueryContext(ctx, sqlStr, args...)
+	}
+	return d.db.QueryContext(ctx, sqlStr, args...)
 }
 
 func (d *Database) CommitTransaction() (err error) {

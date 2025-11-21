@@ -105,10 +105,10 @@ type DatabaseInterface interface {
 	DebugEnable(debug bool)
 
 	// ExecInTransaction executes a function in a transaction
-	ExecInTransaction(fn func(d *Database) error) (err error)
+	ExecInTransaction(ctx context.Context, fn func(d *Database) error) (err error)
 
 	// Exec executes a query
-	Exec(sqlStr string, args ...any) (sql.Result, error)
+	Exec(ctx context.Context, sqlStr string, args ...any) (sql.Result, error)
 
 	// IsMssql checks if the database is MSSQL
 	IsMssql() bool
@@ -141,15 +141,17 @@ type DatabaseInterface interface {
 	Open() (err error)
 
 	// Query queries the database
-	Query(sqlStr string, args ...any) (*sql.Rows, error)
+	Query(ctx context.Context, sqlStr string, args ...any) (*sql.Rows, error)
 
 	// RollbackTransaction rolls back the transaction
 	RollbackTransaction() (err error)
 
-	// SelectToMapAny selects rows from the database and returns them as a map of any
+	// SelectToMapAny selects rows from the database and returns them
+	// as a map of any
 	SelectToMapAny(ctx context.Context, sqlStr string, args ...any) ([]map[string]any, error)
 
-	// SelectToMapString selects rows from the database and returns them as a map of strings
+	// SelectToMapString selects rows from the database and returns them
+	// as a map of strings
 	SelectToMapString(ctx context.Context, sqlStr string, args ...any) ([]map[string]string, error)
 
 	// Tx the transaction

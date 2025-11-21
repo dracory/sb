@@ -1,6 +1,7 @@
 package sb_test
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"os"
@@ -584,7 +585,7 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		}).
 		Create()
 
-	result, err := db.Exec(sqlTableCreate)
+	result, err := db.Exec(context.Background(), sqlTableCreate)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -610,7 +611,7 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sqlColumnRename)
 	}
 
-	result, err = db.Exec(sqlColumnRename)
+	result, err = db.Exec(context.Background(), sqlColumnRename)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -622,7 +623,7 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "email", "name", "created_at", "deleted_at"})
 
-	rows, err := db.Query(sql)
+	rows, err := db.Query(context.Background(), sql)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -667,7 +668,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		}).
 		Create()
 
-	result, err := db.Exec(sqlTableCreate)
+	result, err := db.Exec(context.Background(), sqlTableCreate)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -689,7 +690,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sqlColumnRename)
 	}
 
-	result, err = db.Exec(sqlColumnRename)
+	result, err = db.Exec(context.Background(), sqlColumnRename)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())
@@ -701,7 +702,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 
 	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "name", "created_at", "deleted_at"})
 
-	rows, err := db.Query(sql)
+	rows, err := db.Query(context.Background(), sql)
 
 	if err != nil {
 		t.Fatal("Error must be NIL but got: ", err.Error())

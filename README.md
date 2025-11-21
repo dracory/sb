@@ -111,10 +111,39 @@ myDb = sql.NewDatabaseFromDriver("sqlite3", "test.db")
 
 ```
 myDb := sb.NewDatabaseFromDb(sqlDb, DIALECT_MYSQL)
-err := myDb.Exec(sql)
+
+ctx := context.Background()
+
+_, err := myDb.Exec(ctx, sql)
 ```
 
-## Example Transaction
+## Example Transaction (using ExecInTransaction)
+
+```go
+import _ "modernc.org/sqlite"
+
+myDb = sb.NewDatabaseFromDriver("sqlite3", "test.db")
+
+ctx := context.Background()
+
+err := myDb.ExecInTransaction(ctx, func(tx *sb.Database) error {
+	if _, err := tx.Exec(ctx, sql1); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, sql2); err != nil {
+		return err
+	}
+
+	return nil
+})
+
+if err != nil {
+	// handle error
+}
+```
+
+## Example Transaction (using BeginTransaction, CommitTransaction and RollbackTransaction)
 
 ```go
 import _ "modernc.org/sqlite"
@@ -123,21 +152,23 @@ myDb = sb.NewDatabaseFromDriver("sqlite3", "test.db")
 
 myDb.BeginTransaction()
 
-err := Database.Exec(sql1)
+ctx := context.Background()
+
+_, err := myDb.Exec(ctx, sql1)
 
 if err != nil {
 	myDb.RollbackTransaction()
 	return err
 }
 
-err := Database.Exec(sql2)
+_, err := myDb.Exec(ctx, sql2)
 
 if err != nil {
 	myDb.RollbackTransaction()
 	return err
 }
 
-myDB.CommitTransaction()
+myDb.CommitTransaction()
 
 ```
 
@@ -184,8 +215,9 @@ dropiewSql := ab.NewBuilder(DIALECT_POSTGRES).
 Executes a select query and returns map[string]any
 
 ```go
+ctx := context.Background()
 
-mapAny := myDb.SelectToMapAny(sql)
+mapAny := myDb.SelectToMapAny(ctx, sql)
 
 ```
 
@@ -193,7 +225,9 @@ Executes a select query and returns map[string]string
 
 ```go
 
-mapString := myDb.SelectToMapAny(sql)
+ctx := context.Background()
+
+mapString := myDb.SelectToMapString(ctx, sql)
 
 ```
 
