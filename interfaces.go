@@ -18,6 +18,15 @@ type BuilderInterface interface {
 	// CreateIndex creates an index on the table
 	CreateIndex(indexName string, columnName ...string) string
 
+	// DropIndex removes an index from the table
+	DropIndex(indexName string) string
+
+	// DropIndexIfExists removes an index from the table if it exists
+	DropIndexIfExists(indexName string) string
+
+	// DropIndexWithSchema removes an index from a specific schema (PostgreSQL only)
+	DropIndexWithSchema(indexName string, schema string) string
+
 	// Delete deletes a table
 	Delete() string
 

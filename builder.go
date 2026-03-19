@@ -217,6 +217,97 @@ func (b *Builder) CreateIndex(indexName string, columnName ...string) string {
 	return sql
 }
 
+// DropIndex removes an index from a table.
+// The method generates database-specific SQL:
+//   - MySQL: DROP INDEX `index_name` ON `table_name`;
+//   - PostgreSQL: DROP INDEX "index_name";
+//   - SQLite: DROP INDEX "index_name";
+//   - MSSQL: DROP INDEX [index_name] ON [table_name];
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").DropIndex("idx_users_email")
+//	// Returns: "DROP INDEX `idx_users_email` ON `users`;"
+func (b *Builder) DropIndex(indexName string) string {
+	if indexName == "" {
+		panic("In method DropIndex() index name cannot be empty!")
+	}
+	if b.sqlTableName == "" {
+		panic("In method DropIndex() no table specified to drop index from!")
+	}
+
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+	case DIALECT_POSTGRES:
+		return "DROP INDEX " + b.quoteTable(indexName) + ";"
+	case DIALECT_SQLITE:
+		return "DROP INDEX " + b.quoteTable(indexName) + ";"
+	case DIALECT_MSSQL:
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+	default:
+		panic("unsupported dialect: " + b.Dialect)
+	}
+}
+
+// DropIndexIfExists removes an index from a table if it exists.
+// Uses IF EXISTS clause where supported by the database dialect.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").DropIndexIfExists("idx_users_email")
+//	// Returns: "DROP INDEX IF EXISTS \"idx_users_email\";"
+func (b *Builder) DropIndexIfExists(indexName string) string {
+	if indexName == "" {
+		panic("In method DropIndexIfExists() index name cannot be empty!")
+	}
+	if b.sqlTableName == "" {
+		panic("In method DropIndexIfExists() no table specified to drop index from!")
+	}
+
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		// MySQL doesn't support IF EXISTS for indexes, use regular DROP
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+	case DIALECT_POSTGRES:
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+	case DIALECT_SQLITE:
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+	case DIALECT_MSSQL:
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+	default:
+		panic("unsupported dialect: " + b.Dialect)
+	}
+}
+
+// DropIndexWithSchema removes an index from a specific schema (PostgreSQL only).
+// For other dialects, falls back to regular DropIndex behavior.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").
+//	  DropIndexWithSchema("idx_users_email", "public")
+//	// Returns: "DROP INDEX IF EXISTS \"public\".\"idx_users_email\";"
+func (b *Builder) DropIndexWithSchema(indexName string, schema string) string {
+	if indexName == "" {
+		panic("In method DropIndexWithSchema() index name cannot be empty!")
+	}
+	if b.sqlTableName == "" {
+		panic("In method DropIndexWithSchema() no table specified to drop index from!")
+	}
+
+	switch b.Dialect {
+	case DIALECT_POSTGRES:
+		if schema != "" {
+			return "DROP INDEX IF EXISTS " + b.quoteTable(schema) + "." + b.quoteTable(indexName) + ";"
+		}
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+	default:
+		// Other dialects don't support schema-qualified index names
+		return b.DropIndex(indexName)
+	}
+}
+
 /**
  * The delete method deletes a row in a table. For deleting a database
  * or table use the drop method.

@@ -1412,3 +1412,235 @@ func TestBuilderTruncateUnsupportedDialect(t *testing.T) {
 		Table("users").
 		Truncate()
 }
+
+// Test Builder DropIndex functionality
+
+func TestBuilderDropIndexMySQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndex("idx_users_email")
+
+	expected := "DROP INDEX `idx_users_email` ON `users`;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexPostgreSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndex("idx_users_email")
+
+	expected := `DROP INDEX "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexSQLite(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		DropIndex("idx_users_email")
+
+	expected := `DROP INDEX "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexMSSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		DropIndex("idx_users_email")
+
+	expected := "DROP INDEX [idx_users_email] ON [users];"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexIfExistsMySQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndexIfExists("idx_users_email")
+
+	expected := "DROP INDEX `idx_users_email` ON `users`;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexIfExistsPostgreSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexIfExists("idx_users_email")
+
+	expected := `DROP INDEX IF EXISTS "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexIfExistsSQLite(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		DropIndexIfExists("idx_users_email")
+
+	expected := `DROP INDEX IF EXISTS "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexIfExistsMSSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		DropIndexIfExists("idx_users_email")
+
+	expected := "DROP INDEX IF EXISTS [idx_users_email] ON [users];"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithSchemaPostgreSQL(t *testing.T) {
+	// Test with schema
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexWithSchema("idx_users_email", "public")
+
+	expected := `DROP INDEX IF EXISTS "public"."idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// Test without schema (should use regular behavior)
+	sql = sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexWithSchema("idx_users_email", "")
+
+	expected = `DROP INDEX IF EXISTS "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithSchemaOtherDialects(t *testing.T) {
+	// MySQL should fall back to regular DropIndex
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndexWithSchema("idx_users_email", "public")
+
+	expected := "DROP INDEX `idx_users_email` ON `users`;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// SQLite should fall back to regular DropIndex
+	sql = sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		DropIndexWithSchema("idx_users_email", "public")
+
+	expected = `DROP INDEX "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// MSSQL should fall back to regular DropIndex
+	sql = sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		DropIndexWithSchema("idx_users_email", "public")
+
+	expected = "DROP INDEX [idx_users_email] ON [users];"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexErrorHandling(t *testing.T) {
+	// Test panic when no table is specified
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when no table specified")
+		}
+
+		expectedMsg := "In method DropIndex() no table specified to drop index from!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).DropIndex("idx_users_email")
+}
+
+func TestBuilderDropIndexEmptyIndexName(t *testing.T) {
+	// Test panic when index name is empty
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when index name is empty")
+		}
+
+		expectedMsg := "In method DropIndex() index name cannot be empty!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndex("")
+}
+
+func TestBuilderDropIndexIfExistsErrorHandling(t *testing.T) {
+	// Test panic when no table is specified
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when no table specified")
+		}
+
+		expectedMsg := "In method DropIndexIfExists() no table specified to drop index from!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).DropIndexIfExists("idx_users_email")
+}
+
+func TestBuilderDropIndexWithSchemaErrorHandling(t *testing.T) {
+	// Test panic when no table is specified
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when no table specified")
+		}
+
+		expectedMsg := "In method DropIndexWithSchema() no table specified to drop index from!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_POSTGRES).DropIndexWithSchema("idx_users_email", "public")
+}
+
+func TestBuilderDropIndexUnsupportedDialect(t *testing.T) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic for unsupported dialect")
+		}
+
+		expectedMsg := "unsupported dialect: unknown"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder("unknown").
+		Table("users").
+		DropIndex("idx_users_email")
+}
