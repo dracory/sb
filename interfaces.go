@@ -63,6 +63,12 @@ type BuilderInterface interface {
 	// Where sets the where clause
 	Where(where *Where) BuilderInterface
 
+	// Truncate truncates a table (removes all data)
+	Truncate() string
+
+	// TruncateWithOptions truncates a table with additional options
+	TruncateWithOptions(opts TruncateOptions) string
+
 	// TableColumnAdd adds a column to the table
 	TableColumnAdd(tableName string, column Column) (sqlString string, err error)
 

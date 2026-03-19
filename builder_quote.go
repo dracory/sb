@@ -11,6 +11,8 @@ func (b *Builder) quote(s, quoteType string) string {
 		quoteChar = `"`
 	case DIALECT_SQLITE:
 		quoteChar = `"`
+	case DIALECT_MSSQL:
+		quoteChar = `[`
 	}
 
 	if quoteType == "value" {
@@ -26,6 +28,9 @@ func (b *Builder) quote(s, quoteType string) string {
 	}
 
 	if quoteChar != "" {
+		if b.Dialect == DIALECT_MSSQL {
+			return "[" + s + "]"
+		}
 		return quoteChar + s + quoteChar
 	}
 

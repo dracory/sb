@@ -1225,3 +1225,190 @@ func TestSQLiteAutoIncrementOrder(t *testing.T) {
 		t.Fatalf("Expected %d rows but got %d", len(expectedData), i)
 	}
 }
+
+// Test Builder Truncate functionality
+
+func TestBuilderTruncateMySQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		Truncate()
+
+	expected := "TRUNCATE TABLE `users`;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncatePostgreSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		Truncate()
+
+	expected := `TRUNCATE TABLE "users";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateSQLite(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Truncate()
+
+	expected := `DELETE FROM "users";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateMSSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		Truncate()
+
+	expected := "TRUNCATE TABLE [users];"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateWithOptionsMySQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		TruncateWithOptions(sb.TruncateOptions{Cascade: true, ResetIdentity: true})
+
+	expected := "TRUNCATE TABLE `users`;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateWithOptionsPostgreSQL(t *testing.T) {
+	// Test without CASCADE
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		TruncateWithOptions(sb.TruncateOptions{})
+
+	expected := `TRUNCATE TABLE "orders";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// Test with CASCADE
+	sql = sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		TruncateWithOptions(sb.TruncateOptions{Cascade: true})
+
+	expected = `TRUNCATE TABLE "orders" CASCADE;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateWithOptionsSQLite(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("cache").
+		TruncateWithOptions(sb.TruncateOptions{Cascade: true, ResetIdentity: true})
+
+	expected := `DELETE FROM "cache";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateWithOptionsMSSQL(t *testing.T) {
+	// Test without ResetIdentity
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		TruncateWithOptions(sb.TruncateOptions{})
+
+	expected := "TRUNCATE TABLE [users];"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// Test with ResetIdentity
+	sql = sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		TruncateWithOptions(sb.TruncateOptions{ResetIdentity: true})
+
+	expected = "TRUNCATE TABLE [users]; DBCC CHECKIDENT ('users', RESEED, 0)"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderTruncateWithComplexTableName(t *testing.T) {
+	// Test with schema.table format
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("public.users").
+		Truncate()
+
+	expected := `TRUNCATE TABLE "public"."users";`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+
+	// Test with database.schema.table format
+	var sql2 string
+	sql2 = sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("dbo.users").
+		Truncate()
+
+	expected = "TRUNCATE TABLE [dbo].[users];"
+	if sql2 != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql2)
+	}
+}
+
+func TestBuilderTruncateErrorHandling(t *testing.T) {
+	// Test panic when no table is specified
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when no table specified")
+		}
+
+		expectedMsg := "In method Truncate() no table specified to truncate!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).Truncate()
+}
+
+func TestBuilderTruncateWithOptionsErrorHandling(t *testing.T) {
+	// Test panic when no table is specified
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when no table specified")
+		}
+
+		expectedMsg := "In method TruncateWithOptions() no table specified to truncate!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).TruncateWithOptions(sb.TruncateOptions{})
+}
+
+func TestBuilderTruncateUnsupportedDialect(t *testing.T) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic for unsupported dialect")
+		}
+
+		expectedMsg := "unsupported dialect: unknown"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder("unknown").
+		Table("users").
+		Truncate()
+}

@@ -31,6 +31,12 @@ type GroupBy struct {
 	Column string
 }
 
+// TruncateOptions provides database-specific options for table truncation
+type TruncateOptions struct {
+	Cascade       bool // For PostgreSQL: adds CASCADE to handle foreign key constraints
+	ResetIdentity bool // For MSSQL: resets identity column seed value after truncation
+}
+
 type Builder struct {
 	Dialect            string
 	sql                map[string]any
@@ -590,21 +596,89 @@ func (b *Builder) Insert(columnValuesMap map[string]string) string {
 	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";"
 }
 
+// Truncate removes all data from a table.
+// The method generates database-specific SQL:
+//   - MySQL: TRUNCATE TABLE `table_name`;
+//   - PostgreSQL: TRUNCATE TABLE "table_name";
+//   - SQLite: DELETE FROM "table_name";
+//   - MSSQL: TRUNCATE TABLE [table_name];
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Truncate()
+//	// Returns: "TRUNCATE TABLE `users`;"
 func (b *Builder) Truncate() string {
-	// TODO: implement
-	return ""
+	if b.sqlTableName == "" {
+		panic("In method Truncate() no table specified to truncate!")
+	}
+
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+	case DIALECT_POSTGRES:
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+	case DIALECT_SQLITE:
+		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";"
+	case DIALECT_MSSQL:
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+	default:
+		panic("unsupported dialect: " + b.Dialect)
+	}
 }
 
-/**
- * The <b>update</b> method updates the values of a row in a table.
- * <code>
- * $updated_user = array("USER_MANE"=>"Mike");
- * $database->table("USERS")->where("USER_NAME","==","Peter")->update($updated_user);
- * </code>
- * @param Array an associative array, where keys are the column names of the table
- * @return int 0 or 1, on success, false, otherwise
- * @access public
- */
+// TruncateWithOptions removes all data from a table with additional options.
+// The opts parameter provides database-specific behavior:
+//   - Cascade (PostgreSQL): adds CASCADE to handle foreign key constraints
+//   - ResetIdentity (MSSQL): resets identity column seed value after truncation
+//
+// Examples:
+//
+//	// PostgreSQL with CASCADE for foreign key constraints
+//	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("orders").
+//	  TruncateWithOptions(sb.TruncateOptions{Cascade: true})
+//	// Returns: "TRUNCATE TABLE \"orders\" CASCADE;"
+//
+//	// MSSQL with identity reset
+//	sql := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").
+//	  TruncateWithOptions(sb.TruncateOptions{ResetIdentity: true})
+//	// Returns: "TRUNCATE TABLE [users]; DBCC CHECKIDENT ('users', RESEED, 0)"
+func (b *Builder) TruncateWithOptions(opts TruncateOptions) string {
+	if b.sqlTableName == "" {
+		panic("In method TruncateWithOptions() no table specified to truncate!")
+	}
+
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+
+	case DIALECT_POSTGRES:
+		sql := "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName)
+		if opts.Cascade {
+			sql += " CASCADE"
+		}
+		return sql + ";"
+
+	case DIALECT_SQLITE:
+		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";"
+
+	case DIALECT_MSSQL:
+		if opts.ResetIdentity {
+			return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + "; DBCC CHECKIDENT ('" + b.sqlTableName + "', RESEED, 0)"
+		}
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+
+	default:
+		panic("unsupported dialect: " + b.Dialect)
+	}
+}
+
+// Update updates the values of rows in a table.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").
+//	  Where(sb.Where{Column: "id", Operator: "=", Value: "1"}).
+//	  Update(map[string]string{"name": "John", "email": "john@example.com"})
 func (b *Builder) Update(columnValues map[string]string) string {
 	if b.sqlTableName == "" {
 		panic("In method Update() no table specified to update!")
