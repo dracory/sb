@@ -32,15 +32,17 @@ func TestMySQLIntegration(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Test table creation
-	err = createTestTable(db, "test_users", sb.DIALECT_MYSQL)
+	// Test table creation with unique name
+	tableName := "test_users_mysql"
+	err = createTestTable(db, tableName, sb.DIALECT_MYSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
+	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("test_users").
+		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
 
@@ -95,15 +97,17 @@ func TestPostgreSQLIntegration(t *testing.T) {
 		t.Fatalf("Failed to connect to PostgreSQL after %d attempts: %v", maxRetries, pingErr)
 	}
 
-	// Test table creation
-	err = createTestTable(db, "test_users", sb.DIALECT_POSTGRES)
+	// Test table creation with unique name
+	tableName := "test_users_postgres"
+	err = createTestTable(db, tableName, sb.DIALECT_POSTGRES)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
+	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("test_users").
+		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
 
@@ -136,15 +140,17 @@ func TestSQLiteIntegration(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Test table creation
-	err = createTestTable(db, "test_users", sb.DIALECT_SQLITE)
+	// Test table creation with unique name
+	tableName := "test_users_sqlite"
+	err = createTestTable(db, tableName, sb.DIALECT_SQLITE)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
+	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("test_users").
+		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
 
@@ -273,7 +279,7 @@ func createTestTable(db *sql.DB, tableName string, dialect string) error {
 			Type:    sb.COLUMN_TYPE_DATETIME,
 			Default: "CURRENT_TIMESTAMP",
 		}).
-		Create()
+		CreateIfNotExists()
 
 	if err != nil {
 		return fmt.Errorf("failed to generate CREATE TABLE SQL: %w", err)
@@ -285,6 +291,16 @@ func createTestTable(db *sql.DB, tableName string, dialect string) error {
 	_, err = db.Exec(createSQL)
 	if err != nil {
 		return fmt.Errorf("failed to execute CREATE TABLE: %w", err)
+	}
+	return nil
+}
+
+// dropTestTable drops a test table after testing
+func dropTestTable(db *sql.DB, tableName string) error {
+	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)
+	_, err := db.Exec(dropSQL)
+	if err != nil {
+		return fmt.Errorf("failed to drop test table %s: %w", tableName, err)
 	}
 	return nil
 }
