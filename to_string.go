@@ -6,7 +6,7 @@ import (
 )
 
 // ToString converts an interface to string
-func toString(v interface{}) string {
+func toString(v any) string {
 	switch v := v.(type) {
 	case string:
 		return v
