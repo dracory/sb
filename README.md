@@ -11,6 +11,7 @@ For a full SQL builder functionality check: https://doug-martin.github.io/goqu
 Includes a wrapper for the mainstream DB package to allow transparent working with transactions.
 
 **Features:**
+- ✅ **Parameterized Queries** - SQL injection protection by default with dialect-specific placeholders
 - ✅ **Subquery Support** - IN, NOT IN, EXISTS, NOT EXISTS, and comparison subqueries
 - ✅ **JOIN Operations** - INNER, LEFT, RIGHT, FULL OUTER, and CROSS joins with table aliases
 - ✅ **Index Management** - CREATE INDEX and DROP INDEX with database-specific options
@@ -19,7 +20,23 @@ Includes a wrapper for the mainstream DB package to allow transparent working wi
 
 ## Security
 
-⚠️ **Important:** SB generates SQL strings with value quoting. While this provides basic protection against SQL injection, consider using parameterized queries when available (planned v0.18.0).
+🔒 **Parameterized Queries by Default:** SB now generates parameterized queries with SQL injection protection. Values are separated from SQL and safely handled by database drivers.
+
+```go
+// ✅ Secure - parameterized queries (default)
+sql, params, err := builder.
+    Where(&sb.Where{Column: "email", Operator: "=", Value: userEmail}).
+    Select([]string{"*"})
+// SQL: SELECT * FROM users WHERE email = ?
+// Params: ["user@example.com"]
+
+// ✅ Legacy mode - interpolated values (backward compatible)
+sql, _, err := builder.
+    Where(&sb.Where{Column: "email", Operator: "=", Value: userEmail}).
+    WithInterpolatedValues().
+    Select([]string{"*"})
+// SQL: SELECT * FROM users WHERE email = "user@example.com"
+```
 
 See [Security Guide](docs/security.md) for detailed safety information and best practices.
 
@@ -39,8 +56,8 @@ import "github.com/dracory/sb"
 // Create a builder
 builder := sb.NewBuilder(sb.DIALECT_MYSQL)
 
-// Build queries with error handling
-sql, err := builder.
+// Build parameterized queries with error handling
+sql, params, err := builder.
     Table("users").
     Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
     Select([]string{"name", "email"})
@@ -50,10 +67,10 @@ if err != nil {
     log.Fatal("SQL generation error:", err)
 }
 
-// Execute with database
+// Execute with database (parameterized)
 myDb := sb.NewDatabaseFromDriver("sqlite3", "test.db")
 ctx := context.Background()
-result, err := myDb.Exec(ctx, sql)
+result, err := myDb.Exec(ctx, sql, params...)  // Pass params separately
 ```
 
 ## Documentation
@@ -76,9 +93,9 @@ result, err := myDb.Exec(ctx, sql)
 
 ### Examples
 
-#### Basic Query
+#### Basic Query (Parameterized)
 ```go
-sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).
     Table("users").
     Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
     Select([]string{"name", "email"})
@@ -86,27 +103,36 @@ sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 if err != nil {
     log.Fatal("SQL generation error:", err)
 }
+
+// Execute: db.Exec(sql, params...)
+// SQL: SELECT `name`, `email` FROM `users` WHERE `status` = ?
+// Params: ["active"]
 ```
 
-#### JOIN Example
+#### JOIN Example (Parameterized)
 ```go
-sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).
     Table("orders").
     InnerJoin("users", "orders.user_id = users.id").
+    Where(&sb.Where{Column: "orders.status", Operator: "=", Value: "active"}).
     Select([]string{"orders.*", "users.name"})
 
 if err != nil {
     log.Fatal("SQL generation error:", err)
 }
+
+// Execute: db.Query(sql, params...)
+// SQL: SELECT `orders`.*, `users`.`name` FROM `orders` INNER JOIN `users` ON orders.user_id = users.id WHERE `orders`.`status` = ?
+// Params: ["active"]
 ```
 
-#### Subquery Example
+#### Subquery Example (Parameterized)
 ```go
 subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
     Table("orders").
     Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
 
-sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).
     Table("users").
     InSubquery(subquery).
     Select([]string{"name"})
@@ -114,12 +140,16 @@ sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 if err != nil {
     log.Fatal("SQL generation error:", err)
 }
+
+// Execute: db.Query(sql, params...)
+// SQL: SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > ?)
+// Params: ["1000"]
 ```
 
 #### Error Handling Example
 ```go
-// All SQL generation methods return (string, error)
-sql, err := builder.
+// All SQL generation methods return (string, []interface{}, error)
+sql, params, err := builder.
     Table("users").
     Where(&sb.Where{Column: "email", Operator: "=", Value: "test@example.com"}).
     Select([]string{"*"})
@@ -135,7 +165,84 @@ if err != nil {
         log.Fatal("SQL error:", err)
     }
 }
+
+// Execute safely with parameters
+rows, err := db.Query(sql, params...)
 ```
+
+## Migration Guide
+
+### Breaking Changes in v0.18.0
+
+SB now uses parameterized queries by default for improved security. This is a **breaking change** that affects method signatures.
+
+#### Before (v0.17.x)
+```go
+sql, err := builder.
+    Table("users").
+    Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+    Select([]string{"*"})
+
+db.Exec(sql)  // Direct execution
+```
+
+#### After (v0.18.0)
+```go
+sql, params, err := builder.
+    Table("users").
+    Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+    Select([]string{"*"})
+
+db.Exec(sql, params...)  // Pass parameters separately
+```
+
+### Migration Strategies
+
+#### 1. Quick Migration (Recommended)
+Update your code to handle the new 3-value return:
+
+```go
+// Before
+sql, err := builder.Select([]string{"*"})
+db.Exec(sql)
+
+// After  
+sql, params, err := builder.Select([]string{"*"})
+db.Exec(sql, params...)
+```
+
+#### 2. Gradual Migration
+Use `WithInterpolatedValues()` for backward compatibility:
+
+```go
+// Legacy mode - no changes needed
+sql, _, err := builder.
+    WithInterpolatedValues().
+    Select([]string{"*"})
+db.Exec(sql)  // Same as before
+```
+
+#### 3. Database-Specific Placeholders
+
+| Database | Placeholder Format | Example |
+|----------|------------------|---------|
+| MySQL | `?` | `WHERE id = ?` |
+| PostgreSQL | `$1, $2, $3` | `WHERE id = $1` |
+| SQLite | `?` | `WHERE id = ?` |
+| MSSQL | `@p1, @p2, @p3` | `WHERE id = @p1` |
+
+### Benefits of Migration
+
+✅ **Security**: SQL injection protection by default  
+✅ **Performance**: Better query plan caching  
+✅ **Compatibility**: Works with all major Go database drivers  
+✅ **Flexibility**: Optional legacy mode available  
+
+### Need Help?
+
+- Check the [parameterized queries test file](parameterized_queries_test.go) for examples
+- Review the [implementation documentation](docs/ai-memory-bank/parameterized-queries-implementation.md)
+- Open an issue for migration questions
 
 #### Transaction Example
 ```go
@@ -207,6 +314,7 @@ default:
 
 ## Recently Implemented Features
 
+- ✅ **Parameterized Queries** - SQL injection protection by default with dialect-specific placeholders
 - ✅ **Zero-Panic Error Handling** - Complete error collection system, no panics anywhere
 - ✅ **Subquery Support** - IN, NOT IN, EXISTS, NOT EXISTS, and comparison subqueries with correlation
 - ✅ **JOIN Support** - INNER, LEFT, RIGHT, FULL OUTER, and CROSS joins with table aliases
