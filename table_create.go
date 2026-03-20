@@ -7,7 +7,7 @@ import (
 	"github.com/dracory/database"
 )
 
-func TableCreateSql(db *sql.DB, tableName string, columns []Column) string {
+func TableCreateSql(db *sql.DB, tableName string, columns []Column) (string, error) {
 	databaseType := database.DatabaseType(db)
 
 	builder := NewBuilder(databaseType).Table(tableName)
@@ -28,13 +28,16 @@ func TableCreate(ctx context.Context, db *sql.DB, tableName string, columns []Co
 		builder.Column(column)
 	}
 
-	sqlTable := builder.Create()
+	sqlTable, err := builder.Create()
+	if err != nil {
+		return err
+	}
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	_, err := db.ExecContext(ctx, sqlTable)
+	_, err = db.ExecContext(ctx, sqlTable)
 
 	return err
 }

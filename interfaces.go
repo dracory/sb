@@ -10,22 +10,22 @@ type BuilderInterface interface {
 	Column(column Column) BuilderInterface
 
 	// Create creates a table
-	Create() string
+	Create() (string, error)
 
 	// CreateIfNotExists creates a table if it doesn't exist
-	CreateIfNotExists() string
+	CreateIfNotExists() (string, error)
 
 	// CreateIndex creates an index on the table
-	CreateIndex(indexName string, columnName ...string) string
+	CreateIndex(indexName string, columnName ...string) (string, error)
 
 	// DropIndex removes an index from the table
-	DropIndex(indexName string) string
+	DropIndex(indexName string) (string, error)
 
 	// DropIndexIfExists removes an index from the table if it exists
-	DropIndexIfExists(indexName string) string
+	DropIndexIfExists(indexName string) (string, error)
 
 	// DropIndexWithSchema removes an index from a specific schema (PostgreSQL only)
-	DropIndexWithSchema(indexName string, schema string) string
+	DropIndexWithSchema(indexName string, schema string) (string, error)
 
 	// Join adds a JOIN clause to the query
 	Join(joinType JoinType, table string, onCondition string) BuilderInterface
@@ -43,16 +43,16 @@ type BuilderInterface interface {
 	InnerJoin(table string, onCondition string) BuilderInterface
 
 	// Delete deletes a table
-	Delete() string
+	Delete() (string, error)
 
 	// Drop drops a table
-	Drop() string
+	Drop() (string, error)
 
 	// DropIfExists drops a table if it exists
-	DropIfExists() string
+	DropIfExists() (string, error)
 
 	// Insert inserts a row into the table
-	Insert(columnValuesMap map[string]string) string
+	Insert(columnValuesMap map[string]string) (string, error)
 
 	// GroupBy groups the results by a column
 	GroupBy(groupBy GroupBy) BuilderInterface
@@ -67,13 +67,13 @@ type BuilderInterface interface {
 	OrderBy(columnName string, sortDirection string) BuilderInterface
 
 	// Select selects the columns from the table
-	Select(columns []string) string
+	Select(columns []string) (string, error)
 
 	// Table sets the table name
 	Table(name string) BuilderInterface
 
 	// Update updates a row in the table
-	Update(columnValues map[string]string) string
+	Update(columnValues map[string]string) (string, error)
 
 	// View sets the view name
 	View(name string) BuilderInterface
@@ -91,22 +91,22 @@ type BuilderInterface interface {
 	Subquery() BuilderInterface
 
 	// Exists adds an EXISTS subquery condition
-	Exists(subquery BuilderInterface) BuilderInterface
+	Exists(subquery BuilderInterface) (BuilderInterface, error)
 
 	// NotExists adds a NOT EXISTS subquery condition
-	NotExists(subquery BuilderInterface) BuilderInterface
+	NotExists(subquery BuilderInterface) (BuilderInterface, error)
 
 	// InSubquery adds an IN subquery condition
-	InSubquery(subquery BuilderInterface) BuilderInterface
+	InSubquery(subquery BuilderInterface) (BuilderInterface, error)
 
 	// NotInSubquery adds a NOT IN subquery condition
-	NotInSubquery(subquery BuilderInterface) BuilderInterface
+	NotInSubquery(subquery BuilderInterface) (BuilderInterface, error)
 
 	// Truncate truncates a table (removes all data)
-	Truncate() string
+	Truncate() (string, error)
 
 	// TruncateWithOptions truncates a table with additional options
-	TruncateWithOptions(opts TruncateOptions) string
+	TruncateWithOptions(opts TruncateOptions) (string, error)
 
 	// TableColumnAdd adds a column to the table
 	TableColumnAdd(tableName string, column Column) (sqlString string, err error)

@@ -1,18 +1,31 @@
 package sb
 
 import (
+	"errors"
 	"strings"
 )
 
+// Where represents a WHERE clause condition.
+//
+// Security Note: The Raw field allows arbitrary SQL and can be dangerous with user input.
+// Prefer using Column/Operator/Value for safe parameter handling.
+//
+// Example:
+//
+//	// Safe - values are properly quoted
+//	&sb.Where{Column: "email", Operator: "=", Value: userEmail}
+//
+//	// Dangerous - allows arbitrary SQL
+//	&sb.Where{Raw: "email = '" + userInput + "'"}
 type Where struct {
-	Raw      string
-	Column   string
-	Operator string
-	Type     string
-	Value    string
-	Subquery *Builder
-	IsNot    bool
-	Children []Where
+	Raw      string   // Raw SQL - use with caution, allows arbitrary SQL
+	Column   string   // Column name - safe for validated column names
+	Operator string   // SQL operator - safe for validated operators
+	Type     string   // Logic type (AND/OR) - safe
+	Value    string   // Column value - safely quoted
+	Subquery *Builder // Subquery - safely handled with validation
+	IsNot    bool     // NOT operator flag - safe
+	Children []Where  // Nested conditions - safe
 }
 
 /**
@@ -20,9 +33,18 @@ type Where struct {
  * @param array $wheres
  * @return string
  */
-func (b *Builder) whereToSql(wheres []Where) string {
+func (b *Builder) whereToSql(wheres []Where) (string, error) {
 	sql := []string{}
 	for _, where := range wheres {
+		// Validate subquery for nil case when operator indicates subquery usage
+		if where.Subquery == nil && (where.Operator == "IN" || where.Operator == "NOT IN" ||
+			where.Operator == "EXISTS" || where.Operator == "NOT EXISTS" ||
+			(where.Operator != "" && where.Column != "" && where.Value == "")) {
+			if err := b.validateSubqueryColumns(where); err != nil {
+				return "", err
+			}
+		}
+
 		if where.Raw != "" {
 			sql = append(sql, where.Raw)
 			continue
@@ -33,7 +55,10 @@ func (b *Builder) whereToSql(wheres []Where) string {
 		}
 
 		if where.Subquery != nil {
-			sqlSingle := b.whereToSqlSubquery(where)
+			sqlSingle, err := b.whereToSqlSubquery(where)
+			if err != nil {
+				return "", err
+			}
 			if len(sql) > 0 {
 				sql = append(sql, where.Type+" "+sqlSingle)
 			} else {
@@ -52,15 +77,6 @@ func (b *Builder) whereToSql(wheres []Where) string {
 			}
 
 		}
-		// } else {
-		// 	$_sql = array();
-		// 	$all = $where['WHERE'];
-		// 	for ($k = 0; k < count($all); k++) {
-		// 		$w = $all[$k];
-		// 		$sqlSingle = $this->whereToSqlSingle($w['COLUMN'], $w['OPERATOR'], $w['VALUE']);
-		// 		if ($k == 0) {
-		// 			$_sql[] = $sqlSingle;
-		// 		} else {
 		// 			$_sql[] = $w['TYPE'] . " " . $sqlSingle;
 		// 		}
 		// 	}
@@ -75,10 +91,10 @@ func (b *Builder) whereToSql(wheres []Where) string {
 	}
 
 	if len(sql) > 0 {
-		return " WHERE " + strings.Join(sql, " ")
+		return " WHERE " + strings.Join(sql, " "), nil
 	}
 
-	return ""
+	return "", nil
 }
 
 func (b *Builder) whereToSqlSingle(column, operator, value string) string {
@@ -131,8 +147,59 @@ func (b *Builder) whereToSqlSingle(column, operator, value string) string {
 	return sql
 }
 
+// validateSubqueryColumns validates that subquery returns appropriate number of columns for the operator
+func (b *Builder) validateSubqueryColumns(where Where) error {
+	if where.Subquery == nil {
+		return errors.New("subquery cannot be nil")
+	}
+
+	columns := where.Subquery.sqlSelectColumns
+	if len(columns) == 0 {
+		// No columns explicitly set, check if this is a problem based on operator
+		switch where.Operator {
+		case "IN", "NOT IN":
+			// For IN operations without explicit columns, we need to validate
+			// Since we can't determine the actual columns, we'll assume single column for safety
+			return nil // Allow for now, but this could be enhanced
+		case "=", "!=", ">", "<", ">=", "<=":
+			// For comparison operations without explicit columns, assume single column
+			return nil
+		case "EXISTS", "NOT EXISTS":
+			// EXISTS doesn't care about column count
+			return nil
+		default:
+			// Unknown operator, allow
+			return nil
+		}
+	}
+
+	switch where.Operator {
+	case "IN", "NOT IN":
+		if len(columns) > 1 {
+			return errors.New("IN/NOT IN subquery must select exactly one column")
+		}
+	case "=", "!=", ">", "<", ">=", "<=":
+		if len(columns) > 1 {
+			return errors.New("comparison subquery must select exactly one column")
+		}
+	case "EXISTS", "NOT EXISTS":
+		// Column count doesn't matter for EXISTS
+		return nil
+	default:
+		// Unknown operator, allow for flexibility
+		return nil
+	}
+
+	return nil
+}
+
 // whereToSqlSubquery converts a subquery WHERE condition to SQL
-func (b *Builder) whereToSqlSubquery(where Where) string {
+func (b *Builder) whereToSqlSubquery(where Where) (string, error) {
+	// Validate subquery columns
+	if err := b.validateSubqueryColumns(where); err != nil {
+		return "", err
+	}
+
 	// Get the columns from the subquery builder
 	columns := where.Subquery.sqlSelectColumns
 	if len(columns) == 0 {
@@ -140,7 +207,10 @@ func (b *Builder) whereToSqlSubquery(where Where) string {
 	}
 
 	// Generate subquery SQL without the trailing semicolon
-	subquerySQL := where.Subquery.Select(columns)
+	subquerySQL, err := where.Subquery.Select(columns)
+	if err != nil {
+		return "", err
+	}
 	// Remove the trailing semicolon from subquery
 	subquerySQL = strings.TrimSuffix(subquerySQL, ";")
 
@@ -148,35 +218,35 @@ func (b *Builder) whereToSqlSubquery(where Where) string {
 	switch where.Operator {
 	case "EXISTS":
 		if where.IsNot {
-			return "NOT EXISTS (" + subquerySQL + ")"
+			return "NOT EXISTS (" + subquerySQL + ")", nil
 		}
-		return "EXISTS (" + subquerySQL + ")"
+		return "EXISTS (" + subquerySQL + ")", nil
 	case "IN":
 		if where.Column != "" {
 			columnQuoted := b.quoteColumn(where.Column)
 			if where.IsNot {
-				return columnQuoted + " NOT IN (" + subquerySQL + ")"
+				return columnQuoted + " NOT IN (" + subquerySQL + ")", nil
 			}
-			return columnQuoted + " IN (" + subquerySQL + ")"
+			return columnQuoted + " IN (" + subquerySQL + ")", nil
 		} else {
 			// IN without column (used in WHERE clauses without explicit column)
 			// Default to "id" for IN operations without explicit column
 			defaultColumn := "id"
 			if where.IsNot {
-				return b.quoteColumn(defaultColumn) + " NOT IN (" + subquerySQL + ")"
+				return b.quoteColumn(defaultColumn) + " NOT IN (" + subquerySQL + ")", nil
 			}
-			return b.quoteColumn(defaultColumn) + " IN (" + subquerySQL + ")"
+			return b.quoteColumn(defaultColumn) + " IN (" + subquerySQL + ")", nil
 		}
 	default:
 		// For comparison operators (=, >, <, etc.)
 		if where.Column != "" {
 			columnQuoted := b.quoteColumn(where.Column)
 			if where.IsNot {
-				return columnQuoted + " NOT " + where.Operator + " (" + subquerySQL + ")"
+				return columnQuoted + " NOT " + where.Operator + " (" + subquerySQL + ")", nil
 			}
-			return columnQuoted + " " + where.Operator + " (" + subquerySQL + ")"
+			return columnQuoted + " " + where.Operator + " (" + subquerySQL + ")", nil
 		}
 		// Fallback for edge cases
-		return "(" + subquerySQL + ")"
+		return "(" + subquerySQL + ")", nil
 	}
 }

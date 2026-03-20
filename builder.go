@@ -61,6 +61,7 @@ type Builder struct {
 	Dialect            string
 	sql                map[string]any
 	sqlColumns         []Column
+	sqlErrors          []error // Collect errors during fluent chaining
 	sqlGroupBy         []GroupBy
 	sqlJoins           []Join
 	sqlLimit           int64
@@ -89,13 +90,31 @@ func NewBuilder(dialect string) *Builder {
 	case DIALECT_MSSQL:
 		columnSQLGenerator = MSSQLColumnSQLGenerator{}
 	default:
-		panic("unsupported dialect: " + dialect)
+		// Create builder with error collected for unsupported dialect
+		return &Builder{
+			Dialect:            dialect,
+			sql:                map[string]any{},
+			sqlColumns:         []Column{},
+			sqlErrors:          []error{NewValidationError("unsupported dialect: " + dialect)}, // Collect error
+			sqlGroupBy:         []GroupBy{},
+			sqlJoins:           []Join{},
+			sqlLimit:           0,
+			sqlOffset:          0,
+			sqlOrderBy:         []OrderBy{},
+			sqlTableName:       "",
+			sqlViewName:        "",
+			sqlViewColumns:     []string{},
+			sqlViewSQL:         "",
+			sqlWhere:           []Where{},
+			columnSQLGenerator: nil, // No generator for unsupported dialect
+		}
 	}
 
 	return &Builder{
 		Dialect:            dialect,
 		sql:                map[string]any{},
 		sqlColumns:         []Column{},
+		sqlErrors:          []error{}, // Initialize error collection
 		sqlGroupBy:         []GroupBy{},
 		sqlJoins:           []Join{},
 		sqlLimit:           0,
@@ -132,16 +151,44 @@ func (b *Builder) ViewColumns(columns []string) BuilderInterface {
 
 func (b *Builder) Column(column Column) BuilderInterface {
 	if column.Name == "" {
-		panic("column name is required")
+		b.sqlErrors = append(b.sqlErrors, ErrEmptyColumnName)
+		return b
 	}
 
 	if column.Type == "" {
-		panic("column type is required")
+		b.sqlErrors = append(b.sqlErrors, NewValidationError("column type is required"))
+		return b
 	}
 
 	b.sqlColumns = append(b.sqlColumns, column)
-
 	return b
+}
+
+// addError adds an error to the error collection
+func (b *Builder) addError(err error) {
+	if err != nil {
+		b.sqlErrors = append(b.sqlErrors, err)
+	}
+}
+
+// hasErrors returns true if there are collected errors
+func (b *Builder) hasErrors() bool {
+	return len(b.sqlErrors) > 0
+}
+
+// getErrors returns all collected errors
+func (b *Builder) getErrors() []error {
+	return b.sqlErrors
+}
+
+// validateAndReturnError checks for collected errors and returns them as a single error
+func (b *Builder) validateAndReturnError() error {
+	if len(b.sqlErrors) == 0 {
+		return nil
+	}
+
+	// Return the first error for simplicity, could also combine multiple errors
+	return b.sqlErrors[0]
 }
 
 /**
@@ -160,13 +207,25 @@ func (b *Builder) Column(column Column) BuilderInterface {
  * @return boolean true, on success, false, otherwise
  * @access public
  */
-func (b *Builder) Create() string {
+func (b *Builder) Create() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	isView := b.sqlViewName != ""
 	isTable := b.sqlTableName != ""
+
+	if !isTable && !isView {
+		return "", ErrMissingTable
+	}
 
 	sql := ""
 
 	if isTable {
+		if len(b.sqlColumns) == 0 {
+			return "", ErrEmptyColumns
+		}
 		if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 			sql = `CREATE TABLE ` + b.quoteTable(b.sqlTableName) + `(` + b.columnsToSQL(b.sqlColumns) + `);`
 		}
@@ -176,6 +235,9 @@ func (b *Builder) Create() string {
 	}
 
 	if isView {
+		if b.sqlViewSQL == "" {
+			return "", NewValidationError("view SQL cannot be empty")
+		}
 		if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 			viewColumnsToSQL := strings.Join(lo.Map(b.sqlViewColumns, func(columnName string, _ int) string {
 				return b.quoteColumn(columnName)
@@ -186,16 +248,28 @@ func (b *Builder) Create() string {
 		}
 	}
 
-	return sql
+	return sql, nil
 }
 
-func (b *Builder) CreateIfNotExists() string {
+func (b *Builder) CreateIfNotExists() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	isView := b.sqlViewName != ""
 	isTable := b.sqlTableName != ""
+
+	if !isTable && !isView {
+		return "", ErrMissingTable
+	}
 
 	sql := ""
 
 	if isTable {
+		if len(b.sqlColumns) == 0 {
+			return "", ErrEmptyColumns
+		}
 		if b.Dialect == DIALECT_MYSQL {
 			sql = "CREATE TABLE IF NOT EXISTS " + b.quoteTable(b.sqlTableName) + "(" + b.columnsToSQL(b.sqlColumns) + ");"
 		}
@@ -208,6 +282,9 @@ func (b *Builder) CreateIfNotExists() string {
 	}
 
 	if isView {
+		if b.sqlViewSQL == "" {
+			return "", NewValidationError("view SQL cannot be empty")
+		}
 		if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 			viewColumnsToSQL := strings.Join(lo.Map(b.sqlViewColumns, func(columnName string, _ int) string {
 				return b.quoteColumn(columnName)
@@ -223,21 +300,33 @@ func (b *Builder) CreateIfNotExists() string {
 		}
 	}
 
-	return sql
+	return sql, nil
 }
 
-func (b *Builder) CreateIndex(indexName string, columnName ...string) string {
+func (b *Builder) CreateIndex(indexName string, columnName ...string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
+	if indexName == "" {
+		return "", ErrEmptyIndexName
+	}
 	if b.sqlTableName == "" {
-		panic("In method CreateIndex() no table specified to create index on!")
+		return "", ErrMissingTable
 	}
 
 	columns := lo.Map(columnName, func(columnName string, i int) string {
 		return b.quoteColumn(columnName)
 	})
 
+	if len(columns) == 0 {
+		return "", ErrEmptyColumns
+	}
+
 	sql := `CREATE INDEX ` + b.quoteTable(indexName) + ` ON ` + b.quoteTable(b.sqlTableName) + ` (` + strings.Join(columns, `,`) + `);`
 
-	return sql
+	return sql, nil
 }
 
 // DropIndex removes an index from a table.
@@ -251,25 +340,30 @@ func (b *Builder) CreateIndex(indexName string, columnName ...string) string {
 //
 //	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").DropIndex("idx_users_email")
 //	// Returns: "DROP INDEX `idx_users_email` ON `users`;"
-func (b *Builder) DropIndex(indexName string) string {
+func (b *Builder) DropIndex(indexName string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if indexName == "" {
-		panic("In method DropIndex() index name cannot be empty!")
+		return "", ErrEmptyIndexName
 	}
 	if b.sqlTableName == "" {
-		panic("In method DropIndex() no table specified to drop index from!")
+		return "", ErrMissingTable
 	}
 
 	switch b.Dialect {
 	case DIALECT_MYSQL:
-		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";", nil
 	case DIALECT_POSTGRES:
-		return "DROP INDEX " + b.quoteTable(indexName) + ";"
+		return "DROP INDEX " + b.quoteTable(indexName) + ";", nil
 	case DIALECT_SQLITE:
-		return "DROP INDEX " + b.quoteTable(indexName) + ";"
+		return "DROP INDEX " + b.quoteTable(indexName) + ";", nil
 	case DIALECT_MSSQL:
-		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";", nil
 	default:
-		panic("unsupported dialect: " + b.Dialect)
+		return "", ErrInvalidDialect
 	}
 }
 
@@ -280,26 +374,31 @@ func (b *Builder) DropIndex(indexName string) string {
 //
 //	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").DropIndexIfExists("idx_users_email")
 //	// Returns: "DROP INDEX IF EXISTS \"idx_users_email\";"
-func (b *Builder) DropIndexIfExists(indexName string) string {
+func (b *Builder) DropIndexIfExists(indexName string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if indexName == "" {
-		panic("In method DropIndexIfExists() index name cannot be empty!")
+		return "", ErrEmptyIndexName
 	}
 	if b.sqlTableName == "" {
-		panic("In method DropIndexIfExists() no table specified to drop index from!")
+		return "", ErrMissingTable
 	}
 
 	switch b.Dialect {
 	case DIALECT_MYSQL:
 		// MySQL doesn't support IF EXISTS for indexes, use regular DROP
-		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+		return "DROP INDEX " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";", nil
 	case DIALECT_POSTGRES:
-		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";", nil
 	case DIALECT_SQLITE:
-		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";", nil
 	case DIALECT_MSSQL:
-		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";"
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + " ON " + b.quoteTable(b.sqlTableName) + ";", nil
 	default:
-		panic("unsupported dialect: " + b.Dialect)
+		return "", ErrInvalidDialect
 	}
 }
 
@@ -311,20 +410,25 @@ func (b *Builder) DropIndexIfExists(indexName string) string {
 //	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").
 //	  DropIndexWithSchema("idx_users_email", "public")
 //	// Returns: "DROP INDEX IF EXISTS \"public\".\"idx_users_email\";"
-func (b *Builder) DropIndexWithSchema(indexName string, schema string) string {
+func (b *Builder) DropIndexWithSchema(indexName string, schema string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if indexName == "" {
-		panic("In method DropIndexWithSchema() index name cannot be empty!")
+		return "", ErrEmptyIndexName
 	}
 	if b.sqlTableName == "" {
-		panic("In method DropIndexWithSchema() no table specified to drop index from!")
+		return "", ErrMissingTable
 	}
 
 	switch b.Dialect {
 	case DIALECT_POSTGRES:
 		if schema != "" {
-			return "DROP INDEX IF EXISTS " + b.quoteTable(schema) + "." + b.quoteTable(indexName) + ";"
+			return "DROP INDEX IF EXISTS " + b.quoteTable(schema) + "." + b.quoteTable(indexName) + ";", nil
 		}
-		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";"
+		return "DROP INDEX IF EXISTS " + b.quoteTable(indexName) + ";", nil
 	default:
 		// Other dialects don't support schema-qualified index names
 		return b.DropIndex(indexName)
@@ -344,7 +448,8 @@ func (b *Builder) DropIndexWithSchema(indexName string, schema string) string {
 //	// Returns: "SELECT orders.*, users.name FROM orders INNER JOIN users ON orders.user_id = users.id;"
 func (b *Builder) Join(joinType JoinType, table string, onCondition string) BuilderInterface {
 	if onCondition == "" {
-		panic("In method Join() ON condition cannot be empty!")
+		b.sqlErrors = append(b.sqlErrors, ErrEmptyOnCondition)
+		return b
 	}
 
 	join := Join{
@@ -371,7 +476,8 @@ func (b *Builder) Join(joinType JoinType, table string, onCondition string) Buil
 //	// Returns: "SELECT orders.*, p.avatar FROM orders LEFT JOIN profiles AS p ON orders.user_id = p.user_id;"
 func (b *Builder) JoinWithAlias(joinType JoinType, table string, alias string, onCondition string) BuilderInterface {
 	if onCondition == "" {
-		panic("In method JoinWithAlias() ON condition cannot be empty!")
+		b.sqlErrors = append(b.sqlErrors, ErrEmptyOnCondition)
+		return b
 	}
 
 	join := Join{
@@ -438,14 +544,23 @@ func (b *Builder) InnerJoin(table string, onCondition string) BuilderInterface {
  * @access public
  */
 // Drop deletes a table
-func (b *Builder) Delete() string {
+func (b *Builder) Delete() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method Delete() no table specified to delete from!")
+		return "", ErrMissingTable
 	}
 
 	where := ""
 	if len(b.sqlWhere) > 0 {
-		where = b.whereToSql(b.sqlWhere)
+		var err error
+		where, err = b.whereToSql(b.sqlWhere)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	orderBy := ""
@@ -467,13 +582,22 @@ func (b *Builder) Delete() string {
 	if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 		sql = "DELETE FROM " + b.quoteTable(b.sqlTableName) + where + orderBy + limit + offset + ";"
 	}
-	return sql
+	return sql, nil
 }
 
 // Drop deletes a table or a view
-func (b *Builder) Drop() string {
+func (b *Builder) Drop() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	isView := b.sqlViewName != ""
 	isTable := b.sqlTableName != ""
+
+	if !isTable && !isView {
+		return "", ErrMissingTable
+	}
 
 	sql := ""
 
@@ -489,12 +613,21 @@ func (b *Builder) Drop() string {
 		}
 	}
 
-	return sql
+	return sql, nil
 }
 
-func (b *Builder) DropIfExists() string {
+func (b *Builder) DropIfExists() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	isView := b.sqlViewName != ""
 	isTable := b.sqlTableName != ""
+
+	if !isTable && !isView {
+		return "", ErrMissingTable
+	}
 
 	sql := ""
 
@@ -510,7 +643,7 @@ func (b *Builder) DropIfExists() string {
 		}
 	}
 
-	return sql
+	return sql, nil
 }
 
 func (b *Builder) Limit(limit int64) BuilderInterface {
@@ -708,9 +841,14 @@ func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName stri
  * @return mixed rows as associative array, false on error
  * @access public
  */
-func (b *Builder) Select(columns []string) string {
+func (b *Builder) Select(columns []string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method Select() no table specified to select from!")
+		return "", ErrMissingTable
 	}
 
 	// Store the select columns for subquery use
@@ -725,7 +863,11 @@ func (b *Builder) Select(columns []string) string {
 
 	where := ""
 	if len(b.sqlWhere) > 0 {
-		where = b.whereToSql(b.sqlWhere)
+		var err error
+		where, err = b.whereToSql(b.sqlWhere)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	orderBy := ""
@@ -764,7 +906,7 @@ func (b *Builder) Select(columns []string) string {
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + ";"
 	}
 
-	return sql
+	return sql, nil
 }
 
 /**
@@ -777,9 +919,14 @@ func (b *Builder) Select(columns []string) string {
  * @return int 0 or 1, on success, false, otherwise
  * @access public
  */
-func (b *Builder) Insert(columnValuesMap map[string]string) string {
+func (b *Builder) Insert(columnValuesMap map[string]string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method Insert() no table specified to insert in!")
+		return "", ErrMissingTable
 	}
 
 	limit := ""
@@ -808,7 +955,7 @@ func (b *Builder) Insert(columnValuesMap map[string]string) string {
 		columnValues = append(columnValues, b.quoteValue(columnValue))
 	}
 
-	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";"
+	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";", nil
 }
 
 // Truncate removes all data from a table.
@@ -822,22 +969,27 @@ func (b *Builder) Insert(columnValuesMap map[string]string) string {
 //
 //	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Truncate()
 //	// Returns: "TRUNCATE TABLE `users`;"
-func (b *Builder) Truncate() string {
+func (b *Builder) Truncate() (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method Truncate() no table specified to truncate!")
+		return "", ErrMissingTable
 	}
 
 	switch b.Dialect {
 	case DIALECT_MYSQL:
-		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";", nil
 	case DIALECT_POSTGRES:
-		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";", nil
 	case DIALECT_SQLITE:
-		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";"
+		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";", nil
 	case DIALECT_MSSQL:
-		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";", nil
 	default:
-		panic("unsupported dialect: " + b.Dialect)
+		return "", ErrInvalidDialect
 	}
 }
 
@@ -857,33 +1009,38 @@ func (b *Builder) Truncate() string {
 //	sql := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").
 //	  TruncateWithOptions(sb.TruncateOptions{ResetIdentity: true})
 //	// Returns: "TRUNCATE TABLE [users]; DBCC CHECKIDENT ('users', RESEED, 0)"
-func (b *Builder) TruncateWithOptions(opts TruncateOptions) string {
+func (b *Builder) TruncateWithOptions(opts TruncateOptions) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method TruncateWithOptions() no table specified to truncate!")
+		return "", ErrMissingTable
 	}
 
 	switch b.Dialect {
 	case DIALECT_MYSQL:
-		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";", nil
 
 	case DIALECT_POSTGRES:
 		sql := "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName)
 		if opts.Cascade {
 			sql += " CASCADE"
 		}
-		return sql + ";"
+		return sql, nil
 
 	case DIALECT_SQLITE:
-		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";"
+		return "DELETE FROM " + b.quoteTable(b.sqlTableName) + ";", nil
 
 	case DIALECT_MSSQL:
 		if opts.ResetIdentity {
-			return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + "; DBCC CHECKIDENT ('" + b.sqlTableName + "', RESEED, 0)"
+			return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + "; DBCC CHECKIDENT ('" + b.sqlTableName + "', RESEED, 0)", nil
 		}
-		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";"
+		return "TRUNCATE TABLE " + b.quoteTable(b.sqlTableName) + ";", nil
 
 	default:
-		panic("unsupported dialect: " + b.Dialect)
+		return "", ErrInvalidDialect
 	}
 }
 
@@ -894,9 +1051,14 @@ func (b *Builder) TruncateWithOptions(opts TruncateOptions) string {
 //	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").
 //	  Where(sb.Where{Column: "id", Operator: "=", Value: "1"}).
 //	  Update(map[string]string{"name": "John", "email": "john@example.com"})
-func (b *Builder) Update(columnValues map[string]string) string {
+func (b *Builder) Update(columnValues map[string]string) (string, error) {
+	// First validate any collected errors from fluent chaining
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+
 	if b.sqlTableName == "" {
-		panic("In method Update() no table specified to update!")
+		return "", ErrMissingTable
 	}
 
 	join := b.joinToSQL()
@@ -908,7 +1070,11 @@ func (b *Builder) Update(columnValues map[string]string) string {
 
 	where := ""
 	if len(b.sqlWhere) > 0 {
-		where = b.whereToSql(b.sqlWhere)
+		var err error
+		where, err = b.whereToSql(b.sqlWhere)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	orderBy := ""
@@ -939,9 +1105,21 @@ func (b *Builder) Update(columnValues map[string]string) string {
 		updateSql = append(updateSql, b.quoteColumn(columnName)+"="+b.quoteValue(columnValue))
 	}
 
-	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";"
+	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";", nil
 }
 
+// Where adds a WHERE clause to the query.
+//
+// Security Note: Values are properly quoted to prevent SQL injection.
+// Avoid using the Raw field with user input. Use Column/Operator/Value instead.
+//
+// Example:
+//
+//	// Safe - values are properly quoted
+//	sql := builder.Where(&sb.Where{Column: "email", Operator: "=", Value: userEmail})
+//
+//	// Dangerous - avoid using Raw with user input
+//	sql := builder.Where(&sb.Where{Raw: "email = '" + userEmail + "'"})
 func (b *Builder) Where(where *Where) BuilderInterface {
 	if where == nil {
 		return b
@@ -969,6 +1147,21 @@ func (b *Builder) Subquery() BuilderInterface {
 	return NewBuilder(b.Dialect)
 }
 
+// assertBuilder safely converts a BuilderInterface to *Builder with proper error handling.
+// This prevents unsafe type assertions that could panic at runtime.
+func (b *Builder) assertBuilder(subquery BuilderInterface) (*Builder, error) {
+	if subquery == nil {
+		return nil, ErrNilSubquery
+	}
+
+	builder, ok := subquery.(*Builder)
+	if !ok {
+		return nil, NewValidationError("subquery must be a *Builder instance")
+	}
+
+	return builder, nil
+}
+
 // Exists adds an EXISTS subquery condition to the query.
 // The subquery parameter is the subquery to check for existence.
 //
@@ -982,18 +1175,25 @@ func (b *Builder) Subquery() BuilderInterface {
 //	  Table("users").
 //	  Exists(activeOrders).
 //	  Select([]string{"name"})
-func (b *Builder) Exists(subquery BuilderInterface) BuilderInterface {
+func (b *Builder) Exists(subquery BuilderInterface) (BuilderInterface, error) {
 	if subquery == nil {
-		panic("subquery cannot be nil")
+		return nil, ErrNilSubquery
 	}
 
 	where := Where{
 		Operator: "EXISTS",
-		Subquery: subquery.(*Builder),
-		IsNot:    false,
+		Subquery: func() *Builder {
+			builder, err := b.assertBuilder(subquery)
+			if err != nil {
+				// This should not happen as we already validated subquery above
+				return nil
+			}
+			return builder
+		}(),
+		IsNot: false,
 	}
 	b.sqlWhere = append(b.sqlWhere, where)
-	return b
+	return b, nil
 }
 
 // NotExists adds a NOT EXISTS subquery condition to the query.
@@ -1009,18 +1209,25 @@ func (b *Builder) Exists(subquery BuilderInterface) BuilderInterface {
 //	  Table("users").
 //	  NotExists(activeOrders).
 //	  Select([]string{"name"})
-func (b *Builder) NotExists(subquery BuilderInterface) BuilderInterface {
+func (b *Builder) NotExists(subquery BuilderInterface) (BuilderInterface, error) {
 	if subquery == nil {
-		panic("subquery cannot be nil")
+		return nil, ErrNilSubquery
 	}
 
 	where := Where{
 		Operator: "EXISTS",
-		Subquery: subquery.(*Builder),
-		IsNot:    true,
+		Subquery: func() *Builder {
+			builder, err := b.assertBuilder(subquery)
+			if err != nil {
+				// This should not happen as we already validated subquery above
+				return nil
+			}
+			return builder
+		}(),
+		IsNot: true,
 	}
 	b.sqlWhere = append(b.sqlWhere, where)
-	return b
+	return b, nil
 }
 
 // InSubquery adds an IN subquery condition to the query.
@@ -1037,18 +1244,25 @@ func (b *Builder) NotExists(subquery BuilderInterface) BuilderInterface {
 //	  Table("users").
 //	  InSubquery(highValueUsers).
 //	  Select([]string{"name"})
-func (b *Builder) InSubquery(subquery BuilderInterface) BuilderInterface {
+func (b *Builder) InSubquery(subquery BuilderInterface) (BuilderInterface, error) {
 	if subquery == nil {
-		panic("subquery cannot be nil")
+		return nil, ErrNilSubquery
 	}
 
 	where := Where{
 		Operator: "IN",
-		Subquery: subquery.(*Builder),
-		IsNot:    false,
+		Subquery: func() *Builder {
+			builder, err := b.assertBuilder(subquery)
+			if err != nil {
+				// This should not happen as we already validated subquery above
+				return nil
+			}
+			return builder
+		}(),
+		IsNot: false,
 	}
 	b.sqlWhere = append(b.sqlWhere, where)
-	return b
+	return b, nil
 }
 
 // NotInSubquery adds a NOT IN subquery condition to the query.
@@ -1065,18 +1279,25 @@ func (b *Builder) InSubquery(subquery BuilderInterface) BuilderInterface {
 //	  Table("users").
 //	  NotInSubquery(inactiveUsers).
 //	  Select([]string{"name"})
-func (b *Builder) NotInSubquery(subquery BuilderInterface) BuilderInterface {
+func (b *Builder) NotInSubquery(subquery BuilderInterface) (BuilderInterface, error) {
 	if subquery == nil {
-		panic("subquery cannot be nil")
+		return nil, ErrNilSubquery
 	}
 
 	where := Where{
 		Operator: "IN",
-		Subquery: subquery.(*Builder),
-		IsNot:    true,
+		Subquery: func() *Builder {
+			builder, err := b.assertBuilder(subquery)
+			if err != nil {
+				// This should not happen as we already validated subquery above
+				return nil
+			}
+			return builder
+		}(),
+		IsNot: true,
 	}
 	b.sqlWhere = append(b.sqlWhere, where)
-	return b
+	return b, nil
 }
 
 // columnsToSQL converts the columns statements to SQL.

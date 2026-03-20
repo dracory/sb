@@ -13,7 +13,11 @@ func TableDropSql(ctx database.QueryableContext, tableName string) (string, erro
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	return NewBuilder(databaseType).Table(tableName).Drop(), nil
+	sql, err := NewBuilder(databaseType).Table(tableName).Drop()
+	if err != nil {
+		return "", err
+	}
+	return sql, nil
 }
 
 func TableDropIfExistsSql(ctx database.QueryableContext, tableName string) (string, error) {
@@ -23,7 +27,11 @@ func TableDropIfExistsSql(ctx database.QueryableContext, tableName string) (stri
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	return NewBuilder(databaseType).Table(tableName).DropIfExists(), nil
+	sql, err := NewBuilder(databaseType).Table(tableName).DropIfExists()
+	if err != nil {
+		return "", err
+	}
+	return sql, nil
 }
 
 func TableDrop(ctx database.QueryableContext, tableName string) error {
