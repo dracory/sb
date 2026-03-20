@@ -105,7 +105,20 @@ func (b *Builder) whereToSqlSingle(column, operator, value string) string {
 		operator = "<>"
 	}
 	columnQuoted := b.quoteColumn(column)
-	valueQuoted := b.quoteValue(value)
+
+	// Use parameterized queries by default, unless interpolatedValues mode is enabled
+	var valueQuoted string
+	if b.interpolatedValues {
+		valueQuoted = b.quoteValue(value)
+	} else {
+		// For parameterized queries, use placeholder
+		if value == "NULL" {
+			// NULL is a special case, not a parameter
+			valueQuoted = "NULL"
+		} else {
+			valueQuoted = b.addParam(value)
+		}
+	}
 
 	sql := ""
 	if b.Dialect == DIALECT_MYSQL {
@@ -207,7 +220,8 @@ func (b *Builder) whereToSqlSubquery(where Where) (string, error) {
 	}
 
 	// Generate subquery SQL without the trailing semicolon
-	subquerySQL, err := where.Subquery.Select(columns)
+	// Note: Select now returns (sql, params, error) but we only need the SQL for subqueries
+	subquerySQL, _, err := where.Subquery.Select(columns)
 	if err != nil {
 		return "", err
 	}

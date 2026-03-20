@@ -43,7 +43,7 @@ type BuilderInterface interface {
 	InnerJoin(table string, onCondition string) BuilderInterface
 
 	// Delete deletes a table
-	Delete() (string, error)
+	Delete() (string, []interface{}, error)
 
 	// Drop drops a table
 	Drop() (string, error)
@@ -52,7 +52,7 @@ type BuilderInterface interface {
 	DropIfExists() (string, error)
 
 	// Insert inserts a row into the table
-	Insert(columnValuesMap map[string]string) (string, error)
+	Insert(columnValuesMap map[string]string) (string, []interface{}, error)
 
 	// GroupBy groups the results by a column
 	GroupBy(groupBy GroupBy) BuilderInterface
@@ -67,13 +67,16 @@ type BuilderInterface interface {
 	OrderBy(columnName string, sortDirection string) BuilderInterface
 
 	// Select selects the columns from the table
-	Select(columns []string) (string, error)
+	Select(columns []string) (string, []interface{}, error)
 
 	// Table sets the table name
 	Table(name string) BuilderInterface
 
 	// Update updates a row in the table
-	Update(columnValues map[string]string) (string, error)
+	Update(columnValues map[string]string) (string, []interface{}, error)
+
+	// WithInterpolatedValues enables legacy mode with interpolated values
+	WithInterpolatedValues() BuilderInterface
 
 	// View sets the view name
 	View(name string) BuilderInterface

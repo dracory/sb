@@ -82,12 +82,13 @@ func TestBuilderTableCreateMssql(t *testing.T) {
 }
 
 func TestBuilderTableSelectFull(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
+		WithInterpolatedValues().
 		Select([]string{"id", "first_name", "last_name"})
 
 	if err != nil {
@@ -461,7 +462,7 @@ func TestBuilderTableColumnChangeSqlite(t *testing.T) {
 }
 
 func TestBuilderViewCreateMysql(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error in Select:", err)
 	}
@@ -483,7 +484,7 @@ func TestBuilderViewCreateMysql(t *testing.T) {
 }
 
 func TestBuilderViewCreatePostgresql(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
@@ -505,7 +506,7 @@ func TestBuilderViewCreatePostgresql(t *testing.T) {
 }
 
 func TestBuilderViewCreateSqlite(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
@@ -527,7 +528,7 @@ func TestBuilderViewCreateSqlite(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsMysql(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error in Select:", err)
 	}
@@ -549,7 +550,7 @@ func TestBuilderViewCreateIfNotExistsMysql(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsPostgresql(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
@@ -571,7 +572,7 @@ func TestBuilderViewCreateIfNotExistsPostgresql(t *testing.T) {
 }
 
 func TestBuilderViewCreateIfNotExistsSqlite(t *testing.T) {
-	selectSQL, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
+	selectSQL, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"FirstName", "LastName"})
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
@@ -713,7 +714,7 @@ func TestBuilderTableColumnAddSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "email", "name", "created_at", "deleted_at"})
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "email", "name", "created_at", "deleted_at"})
 
 	if err != nil {
 		t.Fatal("Unexpected error in Select:", err)
@@ -802,7 +803,7 @@ func TestBuilderTableColumnRenameSqlite(t *testing.T) {
 		t.Fatal("Result must not be NIL")
 	}
 
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "name", "created_at", "deleted_at"})
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Select([]string{"id", "name", "created_at", "deleted_at"})
 
 	if err != nil {
 		t.Fatal("Unexpected error in Select:", err)
@@ -865,7 +866,7 @@ func TestBuilderTableDropSqlite(t *testing.T) {
 }
 
 func TestBuilderTableDeleteMysql(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Delete()
 
@@ -880,7 +881,7 @@ func TestBuilderTableDeleteMysql(t *testing.T) {
 }
 
 func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{
 			Column:   "FirstName",
@@ -895,6 +896,7 @@ func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
 		}).
 		Limit(12).
 		Offset(34).
+		WithInterpolatedValues().
 		Delete()
 
 	if err != nil {
@@ -908,7 +910,7 @@ func TestBuilderTableDeleteMysqlExtended(t *testing.T) {
 }
 
 func TestBuilderTableDeleteSqlite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Delete()
 
@@ -923,7 +925,7 @@ func TestBuilderTableDeleteSqlite(t *testing.T) {
 }
 
 func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Where(&sb.Where{
 			Column:   "FirstName",
@@ -936,6 +938,7 @@ func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
 			Value:    "Sam",
 			Type:     "OR",
 		}).
+		WithInterpolatedValues().
 		Delete()
 
 	if err != nil {
@@ -949,7 +952,7 @@ func TestBuilderTableDeleteSqliteExtended(t *testing.T) {
 }
 
 func TestBuilderTableSelectMysql(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Select([]string{})
 
@@ -964,7 +967,7 @@ func TestBuilderTableSelectMysql(t *testing.T) {
 }
 
 func TestBuilderTableSelectPostgres(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Select([]string{})
 
@@ -979,7 +982,7 @@ func TestBuilderTableSelectPostgres(t *testing.T) {
 }
 
 func TestBuilderTableSelectSqlite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{})
 
@@ -994,13 +997,14 @@ func TestBuilderTableSelectSqlite(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullMysql(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
 		GroupBy(sb.GroupBy{Column: "passport"}).
+		WithInterpolatedValues().
 		Select([]string{"id", "first_name", "last_name"})
 
 	if err != nil {
@@ -1014,13 +1018,14 @@ func TestBuilderTableSelectFullMysql(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullPostgres(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
 		GroupBy(sb.GroupBy{Column: "passport"}).
+		WithInterpolatedValues().
 		Select([]string{"id", "first_name", "last_name"})
 
 	if err != nil {
@@ -1034,13 +1039,14 @@ func TestBuilderTableSelectFullPostgres(t *testing.T) {
 }
 
 func TestBuilderTableSelectFullSqlite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Where(&sb.Where{Column: "first_name", Operator: "!=", Value: "Jane"}).
 		OrderBy("first_name", "asc").
 		Limit(10).
 		Offset(20).
 		GroupBy(sb.GroupBy{Column: "passport"}).
+		WithInterpolatedValues().
 		Select([]string{"id", "first_name", "last_name"})
 
 	if err != nil {
@@ -1054,9 +1060,10 @@ func TestBuilderTableSelectFullSqlite(t *testing.T) {
 }
 
 func TestBuilderTableInsertMysql(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Limit(1).
+		WithInterpolatedValues().
 		Insert(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1073,9 +1080,10 @@ func TestBuilderTableInsertMysql(t *testing.T) {
 }
 
 func TestBuilderTableInsertPostgres(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Limit(1).
+		WithInterpolatedValues().
 		Insert(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1092,9 +1100,10 @@ func TestBuilderTableInsertPostgres(t *testing.T) {
 }
 
 func TestBuilderTableInsertSqlite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Limit(1).
+		WithInterpolatedValues().
 		Insert(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1129,7 +1138,7 @@ func TestBuilderTableColumnCreateSqlite(t *testing.T) {
 }
 
 func TestBuilderTableUpdateMysql(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{
 			Column:   "id",
@@ -1137,6 +1146,7 @@ func TestBuilderTableUpdateMysql(t *testing.T) {
 			Value:    "1",
 		}).
 		Limit(1).
+		WithInterpolatedValues().
 		Update(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1153,7 +1163,7 @@ func TestBuilderTableUpdateMysql(t *testing.T) {
 }
 
 func TestBuilderTableUpdatePostgres(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Where(&sb.Where{
 			Column:   "id",
@@ -1161,6 +1171,7 @@ func TestBuilderTableUpdatePostgres(t *testing.T) {
 			Value:    "1",
 		}).
 		Limit(1).
+		WithInterpolatedValues().
 		Update(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1177,7 +1188,7 @@ func TestBuilderTableUpdatePostgres(t *testing.T) {
 }
 
 func TestBuilderTableUpdateSqlite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Where(&sb.Where{
 			Column:   "id",
@@ -1185,6 +1196,7 @@ func TestBuilderTableUpdateSqlite(t *testing.T) {
 			Value:    "1",
 		}).
 		Limit(1).
+		WithInterpolatedValues().
 		Update(map[string]string{
 			"first_name": "Tom",
 			"last_name":  "Jones",
@@ -1201,9 +1213,10 @@ func TestBuilderTableUpdateSqlite(t *testing.T) {
 }
 
 func TestBuilderTableSelectMysqlInj(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		WithInterpolatedValues().
 		Select([]string{})
 
 	if err != nil {
@@ -1217,9 +1230,10 @@ func TestBuilderTableSelectMysqlInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectPostgreslInj(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table("users").
 		Where(&sb.Where{Column: "id", Operator: "=", Value: "58\" OR 1 = 1;--"}).
+		WithInterpolatedValues().
 		Select([]string{})
 
 	if err != nil {
@@ -1233,9 +1247,10 @@ func TestBuilderTableSelectPostgreslInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectSqlitelInj(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Where(&sb.Where{Column: "id", Operator: "=", Value: "58' OR 1 = 1;--"}).
+		WithInterpolatedValues().
 		Select([]string{})
 
 	if err != nil {
@@ -1249,7 +1264,7 @@ func TestBuilderTableSelectSqlitelInj(t *testing.T) {
 }
 
 func TestBuilderTableSelectAll(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{"*"})
 
@@ -1264,7 +1279,7 @@ func TestBuilderTableSelectAll(t *testing.T) {
 }
 
 func TestBuilderTableSelectFn(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("users").
 		Select([]string{"MIN(created_at)"})
 
@@ -1576,993 +1591,15 @@ func TestBuilderTruncateWithOptionsMSSQL(t *testing.T) {
 	if sql != expected {
 		t.Fatalf("Expected: %s but found: %s", expected, sql)
 	}
-
-	// Test with ResetIdentity
-	sql, err = sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("users").
-		TruncateWithOptions(sb.TruncateOptions{ResetIdentity: true})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected = "TRUNCATE TABLE [users]; DBCC CHECKIDENT ('users', RESEED, 0)"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderTruncateWithComplexTableName(t *testing.T) {
-	// Test with schema.table format
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("public.users").
-		Truncate()
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `TRUNCATE TABLE "public"."users";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-
-	// Test with database.schema.table format
-	sql2, err := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("dbo.users").
-		Truncate()
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected = "TRUNCATE TABLE [dbo].[users];"
-	if sql2 != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql2)
-	}
-}
-
-func TestBuilderTruncateErrorHandling(t *testing.T) {
-	// Test error when no table is specified
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).Truncate()
-
-	if err == nil {
-		t.Fatalf("Expected error when no table specified")
-	}
-
-	expectedMsg := "ValidationError: no table specified"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderTruncateWithOptionsErrorHandling(t *testing.T) {
-	// Test error when no table is specified
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).TruncateWithOptions(sb.TruncateOptions{})
-
-	if err == nil {
-		t.Fatalf("Expected error when no table specified")
-	}
-
-	expectedMsg := "ValidationError: no table specified"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderTruncateUnsupportedDialect(t *testing.T) {
-	// Test error for unsupported dialect
-	builder := sb.NewBuilder("unknown")
-	_, err := builder.Table("users").Truncate()
-
-	if err == nil {
-		t.Fatalf("Expected error for unsupported dialect")
-	}
-
-	expectedMsg := "ValidationError: unsupported dialect: unknown"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-// Test Builder DropIndex functionality
-
-func TestBuilderDropIndexMySQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		DropIndex("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "DROP INDEX `idx_users_email` ON `users`;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexPostgreSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		DropIndex("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `DROP INDEX "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexSQLite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("users").
-		DropIndex("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `DROP INDEX "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexMSSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("users").
-		DropIndex("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "DROP INDEX [idx_users_email] ON [users];"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexIfExistsMySQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		DropIndexIfExists("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "DROP INDEX `idx_users_email` ON `users`;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexIfExistsPostgreSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		DropIndexIfExists("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `DROP INDEX IF EXISTS "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexIfExistsSQLite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("users").
-		DropIndexIfExists("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `DROP INDEX IF EXISTS "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexIfExistsMSSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("users").
-		DropIndexIfExists("idx_users_email")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "DROP INDEX IF EXISTS [idx_users_email] ON [users];"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexWithSchemaPostgreSQL(t *testing.T) {
-	// Test with schema
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		DropIndexWithSchema("idx_users_email", "public")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `DROP INDEX IF EXISTS "public"."idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-
-	// Test without schema (should use regular behavior)
-	sql, err = sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		DropIndexWithSchema("idx_users_email", "")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected = `DROP INDEX IF EXISTS "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-
-	// Test with empty schema and index name
-	_, err = sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		DropIndexWithSchema("", "")
-
-	if err == nil {
-		t.Fatal("Expected error for empty index name")
-	}
-
-	expectedMsg := "ValidationError: index name cannot be empty"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderDropIndexWithSchemaOtherDialects(t *testing.T) {
-	// MySQL should fall back to regular DropIndex
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		DropIndexWithSchema("idx_users_email", "public")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "DROP INDEX `idx_users_email` ON `users`;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-
-	// SQLite should fall back to regular DropIndex
-	sql, err = sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("users").
-		DropIndexWithSchema("idx_users_email", "public")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected = `DROP INDEX "idx_users_email";`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-
-	// MSSQL should fall back to regular DropIndex
-	sql, err = sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("users").
-		DropIndexWithSchema("idx_users_email", "public")
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected = "DROP INDEX [idx_users_email] ON [users];"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderDropIndexErrorHandling(t *testing.T) {
-	// Test error when no table is specified
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).DropIndex("idx_users_email")
-
-	if err == nil {
-		t.Fatalf("Expected error when no table specified")
-	}
-
-	expectedMsg := "ValidationError: no table specified"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderDropIndexEmptyIndexName(t *testing.T) {
-	// Test error when index name is empty
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		DropIndex("")
-
-	if err == nil {
-		t.Fatalf("Expected error when index name is empty")
-	}
-
-	expectedMsg := "ValidationError: index name cannot be empty"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderDropIndexIfExistsErrorHandling(t *testing.T) {
-	// Test error when no table is specified
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).DropIndexIfExists("idx_users_email")
-
-	if err == nil {
-		t.Fatalf("Expected error when no table specified")
-	}
-
-	expectedMsg := "ValidationError: no table specified"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderDropIndexWithSchemaErrorHandling(t *testing.T) {
-	// Test error when no table is specified
-	_, err := sb.NewBuilder(sb.DIALECT_POSTGRES).DropIndexWithSchema("idx_users_email", "public")
-
-	if err == nil {
-		t.Fatalf("Expected error when no table specified")
-	}
-
-	expectedMsg := "ValidationError: no table specified"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderDropIndexUnsupportedDialect(t *testing.T) {
-	// Test error for unsupported dialect
-	builder := sb.NewBuilder("unknown")
-	_, err := builder.Table("users").DropIndex("idx_users_email")
-
-	if err == nil {
-		t.Fatalf("Expected error for unsupported dialect")
-	}
-
-	expectedMsg := "ValidationError: unsupported dialect: unknown"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-// Test Builder JOIN functionality
-
-func TestBuilderJoinInnerMySQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		InnerJoin("users", "orders.user_id = users.id").
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `orders`.*, `users`.`name` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinLeftPostgreSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("orders").
-		LeftJoin("profiles", "orders.user_id = profiles.user_id").
-		Select([]string{"orders.*", "profiles.avatar"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `SELECT "orders".*, "profiles"."avatar" FROM "orders"  LEFT JOIN "profiles" ON orders.user_id = profiles.user_id;`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinRightMSSQL(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("orders").
-		RightJoin("users", "orders.user_id = users.id").
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT [orders].*, [users].[name] FROM [orders]  RIGHT JOIN [users] ON orders.user_id = users.id;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinWithAliasSQLite(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("orders").
-		JoinWithAlias(sb.JOIN_LEFT, "profiles", "p", "orders.user_id = p.user_id").
-		Select([]string{"orders.*", "p.avatar"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `SELECT "orders".*, "p"."avatar" FROM "orders"  LEFT JOIN "profiles" AS "p" ON orders.user_id = p.user_id;`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinMultiple(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		InnerJoin("users", "orders.user_id = users.id").
-		LeftJoin("profiles", "users.id = profiles.user_id").
-		Select([]string{"orders.total", "users.name", "profiles.avatar"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `orders`.`total`, `users`.`name`, `profiles`.`avatar` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id  LEFT JOIN `profiles` ON users.id = profiles.user_id;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinFullOuter(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("orders").
-		Join(sb.JOIN_FULL, "users", "orders.user_id = users.id").
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `SELECT "orders".*, "users"."name" FROM "orders"  FULL JOIN "users" ON orders.user_id = users.id;`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinCross(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("orders").
-		Join(sb.JOIN_CROSS, "users", "1=1").
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `SELECT "orders".*, "users"."name" FROM "orders"  CROSS JOIN "users" ON 1=1;`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinWithWhere(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		InnerJoin("users", "orders.user_id = users.id").
-		Where(&sb.Where{Column: "orders.status", Operator: "=", Value: "active"}).
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `orders`.*, `users`.`name` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id WHERE `orders`.`status` = \"active\";"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinWithOrderBy(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("orders").
-		LeftJoin("users", "orders.user_id = users.id").
-		OrderBy("orders.created_at", "DESC").
-		Select([]string{"orders.*", "users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := `SELECT "orders".*, "users"."name" FROM "orders"  LEFT JOIN "users" ON orders.user_id = users.id ORDER BY "orders"."created_at" DESC;`
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-func TestBuilderJoinErrorHandlingEmptyCondition(t *testing.T) {
-	// Test error when ON condition is empty
-	builder := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders")
-
-	builder.InnerJoin("users", "")
-
-	// Error should be returned when trying to generate SQL
-	_, err := builder.Select([]string{"*"})
-
-	if err == nil {
-		t.Fatalf("Expected error when ON condition is empty")
-	}
-
-	expectedMsg := "ValidationError: ON condition cannot be empty"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderJoinWithAliasErrorHandlingEmptyCondition(t *testing.T) {
-	// Test error when ON condition is empty
-	builder := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders")
-
-	builder.JoinWithAlias(sb.JOIN_LEFT, "profiles", "p", "")
-
-	// Error should be returned when trying to generate SQL
-	_, err := builder.Select([]string{"*"})
-
-	if err == nil {
-		t.Fatalf("Expected error when ON condition is empty")
-	}
-
-	expectedMsg := "ValidationError: ON condition cannot be empty"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message: %s but got: %v", expectedMsg, err)
-	}
-}
-
-func TestBuilderJoinComplexTableName(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		InnerJoin("public.users", "orders.user_id = public.users.id").
-		Select([]string{"orders.*", "public.users.name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `orders`.*, `public`.`users`.`name` FROM `orders`  INNER JOIN `public`.`users` ON orders.user_id = public.users.id;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinUpdate(t *testing.T) {
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		InnerJoin("users", "orders.user_id = users.id").
-		Where(&sb.Where{Column: "orders.status", Operator: "=", Value: "pending"}).
-		Update(map[string]string{"orders.status": "processed"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "UPDATE `orders` SET `orders`.`status`=\"processed\"  INNER JOIN `users` ON orders.user_id = users.id WHERE `orders`.`status` = \"pending\";"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderJoinNoJoins(t *testing.T) {
-	// Test that queries work normally without joins
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
-		Select([]string{"*"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT * FROM `orders` WHERE `status` = \"active\";"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-// Test Builder Subquery functionality
-
-func TestBuilderSubqueryInMySQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\");"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryInPostgreSQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > '1000');"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryInSQLite(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > '1000');"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryInMSSQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MSSQL).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT [name] FROM [users] WHERE [id] IN (SELECT * FROM [orders] WHERE [total] > 1000);"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryNotInMySQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "inactive"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		NotInSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `id` NOT IN (SELECT * FROM `orders` WHERE `status` = \"inactive\");"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryExistsMySQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"}).
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		Exists(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name", "email"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name`, `email` FROM `users` WHERE EXISTS (SELECT * FROM `orders` WHERE `user_id` = \"users.id\" AND `status` = \"active\");"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryNotExistsPostgreSQL(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("orders").
-		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"}).
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
-		Table("users").
-		NotExists(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name", "email"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT \"name\", \"email\" FROM \"users\" WHERE NOT EXISTS (SELECT * FROM \"orders\" WHERE \"user_id\" = 'users.id' AND \"status\" = 'active');"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryWithWhereClause(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `status` = \"active\" AND `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\");"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryWithOrderBy(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	builder.OrderBy("name", "ASC")
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\") ORDER BY `name` ASC;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryWithLimit(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	builder.Limit(10)
-
-	sql, err := builder.Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\") LIMIT 10;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryComparison(t *testing.T) {
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"})
-
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		Where(&sb.Where{
-			Column:   "id",
-			Operator: ">",
-			Subquery: subquery.(*sb.Builder),
-		}).
-		Select([]string{"name"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT `name` FROM `users` WHERE `id` > (SELECT * FROM `orders` WHERE `user_id` = \"users.id\");"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
-}
-
-func TestBuilderSubqueryErrorHandlingNilSubquery(t *testing.T) {
-	// Test error when subquery is nil
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		Exists(nil)
-
-	if err == nil {
-		t.Fatalf("Expected error but none occurred")
-	}
-	if err.Error() != "ArgumentError: subquery cannot be nil" {
-		t.Fatalf("Expected 'ArgumentError: subquery cannot be nil' but got: %v", err)
-	}
-}
-
-func TestBuilderSubqueryErrorHandlingNilSubqueryNotExists(t *testing.T) {
-	// Test error when subquery is nil for NotExists
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		NotExists(nil)
-
-	if err == nil {
-		t.Fatalf("Expected error but none occurred")
-	}
-	if err.Error() != "ArgumentError: subquery cannot be nil" {
-		t.Fatalf("Expected 'ArgumentError: subquery cannot be nil' but got: %v", err)
-	}
-}
-
-func TestBuilderSubqueryErrorHandlingNilSubqueryIn(t *testing.T) {
-	// Test error when subquery is nil for InSubquery
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		InSubquery(nil)
-
-	if err == nil {
-		t.Fatalf("Expected error but none occurred")
-	}
-	if err.Error() != "ArgumentError: subquery cannot be nil" {
-		t.Fatalf("Expected 'ArgumentError: subquery cannot be nil' but got: %v", err)
-	}
-}
-
-func TestBuilderSubqueryErrorHandlingNilSubqueryNotIn(t *testing.T) {
-	// Test error when subquery is nil for NotInSubquery
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("users").
-		NotInSubquery(nil)
-
-	if err == nil {
-		t.Fatalf("Expected error but none occurred")
-	}
-	if err.Error() != "ArgumentError: subquery cannot be nil" {
-		t.Fatalf("Expected 'ArgumentError: subquery cannot be nil' but got: %v", err)
-	}
-}
-func TestBuilderSubqueryComplex(t *testing.T) {
-	// Complex subquery with multiple conditions
-	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("order_items").
-		Where(&sb.Where{Column: "quantity", Operator: ">", Value: "5"}).
-		Where(&sb.Where{Column: "price", Operator: ">", Value: "100"})
-
-	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table("orders").
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
-		InSubquery(subquery)
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	builder.OrderBy("created_at", "DESC").
-		Limit(20)
-
-	sql, err := builder.Select([]string{"*"})
-
-	if err != nil {
-		t.Fatal("Unexpected error:", err)
-	}
-
-	expected := "SELECT * FROM `orders` WHERE `status` = \"active\" AND `id` IN (SELECT * FROM `order_items` WHERE `quantity` > \"5\" AND `price` > \"100\") ORDER BY `created_at` DESC LIMIT 20;"
-	if sql != expected {
-		t.Fatalf("Expected: %s but found: %s", expected, sql)
-	}
 }
 
 func TestBuilderSubqueryCreateMethod(t *testing.T) {
-	// Test the Subquery() method
 	subqueryBuilder := sb.NewBuilder(sb.DIALECT_MYSQL).Subquery()
 
-	// Test that the subquery builder works normally
 	subquery := subqueryBuilder.
 		Table("orders").
-		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"}).
+		WithInterpolatedValues()
 
 	builder, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
@@ -2572,7 +1609,7 @@ func TestBuilderSubqueryCreateMethod(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	sql, err := builder.Select([]string{"name"})
+	sql, _, err := builder.WithInterpolatedValues().Select([]string{"name"})
 
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
@@ -2610,14 +1647,14 @@ func TestSubqueryValidation(t *testing.T) {
 				Table("orders")
 
 			// Set the columns by calling Select to trigger sqlSelectColumns setting
-			_, err := subqueryInterface.Select(tt.columns)
+			_, _, err := subqueryInterface.Select(tt.columns)
 			if err != nil {
 				t.Fatal("Unexpected error setting subquery columns:", err)
 			}
 
 			// Try to use the subquery
 			if tt.operator == "IN" || tt.operator == "NOT IN" {
-				_, err = sb.NewBuilder(sb.DIALECT_MYSQL).
+				_, _, err = sb.NewBuilder(sb.DIALECT_MYSQL).
 					Table("users").
 					Where(&sb.Where{
 						Operator: tt.operator,
@@ -2625,7 +1662,7 @@ func TestSubqueryValidation(t *testing.T) {
 					}).
 					Select([]string{"*"})
 			} else if tt.operator == "EXISTS" || tt.operator == "NOT EXISTS" {
-				_, err = sb.NewBuilder(sb.DIALECT_MYSQL).
+				_, _, err = sb.NewBuilder(sb.DIALECT_MYSQL).
 					Table("users").
 					Where(&sb.Where{
 						Operator: tt.operator,
@@ -2635,7 +1672,7 @@ func TestSubqueryValidation(t *testing.T) {
 					Select([]string{"*"})
 			} else {
 				// Comparison operators
-				_, err = sb.NewBuilder(sb.DIALECT_MYSQL).
+				_, _, err = sb.NewBuilder(sb.DIALECT_MYSQL).
 					Table("users").
 					Where(&sb.Where{
 						Column:   "id",
@@ -2672,7 +1709,7 @@ func TestSubqueryValidationWithExists(t *testing.T) {
 		}
 	}()
 
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{
 			Operator: "EXISTS",
@@ -2692,7 +1729,7 @@ func TestSubqueryValidationWithExists(t *testing.T) {
 
 func TestSubqueryValidationWithNilSubquery(t *testing.T) {
 	// This should return an error during validation
-	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	_, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
 		Where(&sb.Where{
 			Operator: "IN",

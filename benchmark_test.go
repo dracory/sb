@@ -21,7 +21,7 @@ func BenchmarkSQLGeneration(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = builder.Select([]string{"id", "name", "email"})
+				_, _, _ = builder.Select([]string{"id", "name", "email"})
 			}
 		})
 	}
@@ -47,7 +47,7 @@ func BenchmarkComplexQuery(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = builder.Select([]string{"id", "name", "email", "created_at"})
+				_, _, _ = builder.Select([]string{"id", "name", "email", "created_at"})
 			}
 		})
 	}
@@ -72,7 +72,7 @@ func BenchmarkJoinQuery(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = builder.Select([]string{"users.name", "profiles.avatar", "orders.total"})
+				_, _, _ = builder.Select([]string{"users.name", "profiles.avatar", "orders.total"})
 			}
 		})
 	}
@@ -102,7 +102,7 @@ func BenchmarkSubquery(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = builder.Select([]string{"name", "email"})
+				_, _, _ = builder.Select([]string{"name", "email"})
 			}
 		})
 	}
@@ -127,7 +127,7 @@ func BenchmarkErrorHandling(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = builder.Select([]string{"id", "name", "email"})
+				_, _, _ = builder.Select([]string{"id", "name", "email"})
 			}
 		})
 	}
@@ -150,7 +150,7 @@ func BenchmarkErrorCollection(b *testing.B) {
 					builder := sb.NewBuilder(dialect).
 						Table("users").
 						Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
-					_, _ = builder.Select([]string{"id", "name"})
+					_, _, _ = builder.Select([]string{"id", "name"})
 				}
 			})
 
@@ -160,7 +160,7 @@ func BenchmarkErrorCollection(b *testing.B) {
 					builder := sb.NewBuilder("invalid_dialect").
 						Table("users").
 						Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
-					_, _ = builder.Select([]string{"id", "name"})
+					_, _, _ = builder.Select([]string{"id", "name"})
 				}
 			})
 		})
@@ -180,7 +180,7 @@ func BenchmarkFluentChaining(b *testing.B) {
 		b.Run(dialect, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = sb.NewBuilder(dialect).
+				_, _, _ = sb.NewBuilder(dialect).
 					Table("users").
 					Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 					Where(&sb.Where{Column: "created_at", Operator: ">", Value: "2023-01-01"}).
@@ -241,7 +241,7 @@ func BenchmarkInsert(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = sb.NewBuilder(dialect).Table("users").Insert(data)
+				_, _, _ = sb.NewBuilder(dialect).Table("users").Insert(data)
 			}
 		})
 	}
@@ -265,7 +265,7 @@ func BenchmarkUpdate(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = sb.NewBuilder(dialect).
+				_, _, _ = sb.NewBuilder(dialect).
 					Table("users").
 					Where(&sb.Where{Column: "id", Operator: "=", Value: "1"}).
 					Update(data)
@@ -287,7 +287,7 @@ func BenchmarkDelete(b *testing.B) {
 		b.Run(dialect, func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = sb.NewBuilder(dialect).
+				_, _, _ = sb.NewBuilder(dialect).
 					Table("users").
 					Where(&sb.Where{Column: "status", Operator: "=", Value: "inactive"}).
 					Delete()
@@ -342,7 +342,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 					Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 					OrderBy("name", "ASC").
 					Limit(10)
-				_, _ = builder.Select([]string{"id", "name", "email"})
+				_, _, _ = builder.Select([]string{"id", "name", "email"})
 			}
 		})
 	}

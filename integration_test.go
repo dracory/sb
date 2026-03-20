@@ -41,7 +41,7 @@ func TestMySQLIntegration(t *testing.T) {
 	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
-	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+	sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
@@ -50,8 +50,8 @@ func TestMySQLIntegration(t *testing.T) {
 		t.Fatalf("Failed to generate SQL: %v", err)
 	}
 
-	// Execute the generated SQL
-	_, err = db.Exec(sql)
+	// Execute the generated SQL with parameters
+	_, err = db.Exec(sql, params...)
 	if err != nil {
 		t.Fatalf("Failed to execute SQL: %v\nSQL: %s", err, sql)
 	}
@@ -106,7 +106,7 @@ func TestPostgreSQLIntegration(t *testing.T) {
 	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
-	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+	sql, params, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
 		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
@@ -115,8 +115,8 @@ func TestPostgreSQLIntegration(t *testing.T) {
 		t.Fatalf("Failed to generate SQL: %v", err)
 	}
 
-	// Execute the generated SQL
-	_, err = db.Exec(sql)
+	// Execute the generated SQL with parameters
+	_, err = db.Exec(sql, params...)
 	if err != nil {
 		t.Fatalf("Failed to execute SQL: %v\nSQL: %s", err, sql)
 	}
@@ -149,7 +149,7 @@ func TestSQLiteIntegration(t *testing.T) {
 	defer dropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table(tableName).
 		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
 		Select([]string{"name", "email"})
@@ -158,8 +158,8 @@ func TestSQLiteIntegration(t *testing.T) {
 		t.Fatalf("Failed to generate SQL: %v", err)
 	}
 
-	// Execute the generated SQL
-	_, err = db.Exec(sql)
+	// Execute the generated SQL with parameters
+	_, err = db.Exec(sql, params...)
 	if err != nil {
 		t.Fatalf("Failed to execute SQL: %v\nSQL: %s", err, sql)
 	}
@@ -184,7 +184,8 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	defer db.Close()
 
 	// Test 1: Missing table error
-	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).Select([]string{"*"})
+	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).Select([]string{"*"})
+	_ = params // params not used in error test
 
 	if err == nil {
 		t.Fatal("Expected error for missing table but got none")
@@ -196,10 +197,11 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	}
 
 	// Test 2: Empty JOIN condition error
-	sql, err = sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, params, err = sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("test_users").
 		InnerJoin("orders", "").
 		Select([]string{"*"})
+	_ = params // params not used in error test
 
 	if err == nil {
 		t.Fatal("Expected error for empty JOIN condition but got none")
@@ -211,7 +213,10 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	}
 
 	// Test 3: Unsupported dialect error (should be collected during creation)
-	sql, err = sb.NewBuilder("unknown").Select([]string{"*"})
+	sql, params, err = sb.NewBuilder("unknown").
+		Table("test_users").
+		Select([]string{"*"})
+	_ = params // params not used in error test
 
 	if err == nil {
 		t.Fatal("Expected error for unsupported dialect but got none")
@@ -223,7 +228,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	}
 
 	// Test 4: Successful case after fixing errors
-	sql, err = sb.NewBuilder(sb.DIALECT_SQLITE).
+	sql, params, err = sb.NewBuilder(sb.DIALECT_SQLITE).
 		Table("test_users").
 		Select([]string{"name", "email"})
 

@@ -74,6 +74,9 @@ type Builder struct {
 	sqlViewSQL         string
 	sqlWhere           []Where
 	columnSQLGenerator ColumnSQLGenerator
+	params             []interface{} // Track parameters for parameterized queries
+	paramIndex         int           // Track parameter index for naming
+	interpolatedValues bool          // Track if using interpolated values mode
 }
 
 var _ BuilderInterface = (*Builder)(nil)
@@ -189,6 +192,43 @@ func (b *Builder) validateAndReturnError() error {
 
 	// Return the first error for simplicity, could also combine multiple errors
 	return b.sqlErrors[0]
+}
+
+// addParam adds a parameter value and returns the appropriate placeholder for the current dialect
+func (b *Builder) addParam(value interface{}) string {
+	b.params = append(b.params, value)
+	placeholder := b.getParameterPlaceholder()
+	b.paramIndex++
+	return placeholder
+}
+
+// getParameterPlaceholder returns the parameter placeholder syntax for the current dialect
+func (b *Builder) getParameterPlaceholder() string {
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		return "?"
+	case DIALECT_POSTGRES:
+		return fmt.Sprintf("$%d", b.paramIndex+1)
+	case DIALECT_SQLITE:
+		return "?"
+	case DIALECT_MSSQL:
+		return fmt.Sprintf("@p%d", b.paramIndex+1)
+	default:
+		return "?"
+	}
+}
+
+// resetParams resets the parameter tracking for a new query
+func (b *Builder) resetParams() {
+	b.params = []interface{}{}
+	b.paramIndex = 0
+}
+
+// WithInterpolatedValues enables legacy mode with interpolated values instead of parameterized queries.
+// WARNING: This mode is insecure and vulnerable to SQL injection. Use only for backward compatibility.
+func (b *Builder) WithInterpolatedValues() BuilderInterface {
+	b.interpolatedValues = true
+	return b
 }
 
 /**
@@ -543,15 +583,18 @@ func (b *Builder) InnerJoin(table string, onCondition string) BuilderInterface {
  * @return string
  * @access public
  */
-// Drop deletes a table
-func (b *Builder) Delete() (string, error) {
+// Delete deletes rows from a table
+func (b *Builder) Delete() (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if b.sqlTableName == "" {
-		return "", ErrMissingTable
+		return "", nil, ErrMissingTable
 	}
 
 	where := ""
@@ -559,7 +602,7 @@ func (b *Builder) Delete() (string, error) {
 		var err error
 		where, err = b.whereToSql(b.sqlWhere)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 	}
 
@@ -582,7 +625,7 @@ func (b *Builder) Delete() (string, error) {
 	if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 		sql = "DELETE FROM " + b.quoteTable(b.sqlTableName) + where + orderBy + limit + offset + ";"
 	}
-	return sql, nil
+	return sql, b.params, nil
 }
 
 // Drop deletes a table or a view
@@ -841,14 +884,17 @@ func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName stri
  * @return mixed rows as associative array, false on error
  * @access public
  */
-func (b *Builder) Select(columns []string) (string, error) {
+func (b *Builder) Select(columns []string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if b.sqlTableName == "" {
-		return "", ErrMissingTable
+		return "", nil, ErrMissingTable
 	}
 
 	// Store the select columns for subquery use
@@ -866,7 +912,7 @@ func (b *Builder) Select(columns []string) (string, error) {
 		var err error
 		where, err = b.whereToSql(b.sqlWhere)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 	}
 
@@ -906,7 +952,7 @@ func (b *Builder) Select(columns []string) (string, error) {
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + ";"
 	}
 
-	return sql, nil
+	return sql, b.params, nil
 }
 
 /**
@@ -919,14 +965,17 @@ func (b *Builder) Select(columns []string) (string, error) {
  * @return int 0 or 1, on success, false, otherwise
  * @access public
  */
-func (b *Builder) Insert(columnValuesMap map[string]string) (string, error) {
+func (b *Builder) Insert(columnValuesMap map[string]string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if b.sqlTableName == "" {
-		return "", ErrMissingTable
+		return "", nil, ErrMissingTable
 	}
 
 	limit := ""
@@ -952,10 +1001,16 @@ func (b *Builder) Insert(columnValuesMap map[string]string) (string, error) {
 	for _, columnName := range keys {
 		columnValue := columnValuesMap[columnName]
 		columnNames = append(columnNames, b.quoteColumn(columnName))
-		columnValues = append(columnValues, b.quoteValue(columnValue))
+
+		// Use parameterized queries by default, unless interpolatedValues mode is enabled
+		if b.interpolatedValues {
+			columnValues = append(columnValues, b.quoteValue(columnValue))
+		} else {
+			columnValues = append(columnValues, b.addParam(columnValue))
+		}
 	}
 
-	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";", nil
+	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";", b.params, nil
 }
 
 // Truncate removes all data from a table.
@@ -1051,14 +1106,17 @@ func (b *Builder) TruncateWithOptions(opts TruncateOptions) (string, error) {
 //	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").
 //	  Where(sb.Where{Column: "id", Operator: "=", Value: "1"}).
 //	  Update(map[string]string{"name": "John", "email": "john@example.com"})
-func (b *Builder) Update(columnValues map[string]string) (string, error) {
+func (b *Builder) Update(columnValues map[string]string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if b.sqlTableName == "" {
-		return "", ErrMissingTable
+		return "", nil, ErrMissingTable
 	}
 
 	join := b.joinToSQL()
@@ -1073,7 +1131,7 @@ func (b *Builder) Update(columnValues map[string]string) (string, error) {
 		var err error
 		where, err = b.whereToSql(b.sqlWhere)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 	}
 
@@ -1102,10 +1160,16 @@ func (b *Builder) Update(columnValues map[string]string) (string, error) {
 	updateSql := []string{}
 	for _, columnName := range keys {
 		columnValue := columnValues[columnName]
-		updateSql = append(updateSql, b.quoteColumn(columnName)+"="+b.quoteValue(columnValue))
+
+		// Use parameterized queries by default, unless interpolatedValues mode is enabled
+		if b.interpolatedValues {
+			updateSql = append(updateSql, b.quoteColumn(columnName)+"="+b.quoteValue(columnValue))
+		} else {
+			updateSql = append(updateSql, b.quoteColumn(columnName)+"="+b.addParam(columnValue))
+		}
 	}
 
-	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";", nil
+	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";", b.params, nil
 }
 
 // Where adds a WHERE clause to the query.
