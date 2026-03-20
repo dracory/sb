@@ -27,6 +27,24 @@ type BuilderInterface interface {
 	// DropIndexWithSchema removes an index from a specific schema (PostgreSQL only)
 	DropIndexWithSchema(indexName string, schema string) (string, error)
 
+	// CreateIndexWithOptions creates an index with advanced options
+	CreateIndexWithOptions(name string, opts IndexOptions) (string, error)
+
+	// CreateUniqueIndex creates a UNIQUE index on one or more columns
+	CreateUniqueIndex(name string, columns ...string) (string, error)
+
+	// CreateCompositeIndex creates an index on multiple columns with explicit ordering
+	CreateCompositeIndex(name string, columns []IndexColumn) (string, error)
+
+	// CreatePartialIndex creates an index with a WHERE predicate (PostgreSQL, SQLite, MSSQL)
+	CreatePartialIndex(name string, where string, columns ...string) (string, error)
+
+	// CreateCoveringIndex creates a covering index using the INCLUDE clause (PostgreSQL, MSSQL)
+	CreateCoveringIndex(name string, include []string, columns ...string) (string, error)
+
+	// DropIndexWithOptions drops an index with advanced options
+	DropIndexWithOptions(name string, opts DropIndexOptions) (string, error)
+
 	// Join adds a JOIN clause to the query
 	Join(joinType JoinType, table string, onCondition string) BuilderInterface
 

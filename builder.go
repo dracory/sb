@@ -37,16 +37,33 @@ type TruncateOptions struct {
 	ResetIdentity bool // For MSSQL: resets identity column seed value after truncation
 }
 
+// IndexColumn defines a single column in an index, with optional direction and prefix length.
+type IndexColumn struct {
+	Name      string // column name
+	Direction string // "ASC" or "DESC" — defaults to ASC if empty
+	Length    int    // prefix length for MySQL text/blob columns (ignored on other dialects)
+}
+
+// IndexOptions controls advanced index creation behaviour.
+type IndexOptions struct {
+	Unique      bool          // emit UNIQUE keyword
+	IfNotExists bool          // emit IF NOT EXISTS where supported
+	Columns     []IndexColumn // columns with optional direction / prefix length
+	Using       string        // index type: BTREE, HASH, GIN, GIST, BRIN, FULLTEXT, SPATIAL
+	Include     []string      // PostgreSQL / MSSQL covering-index columns (INCLUDE clause)
+	Where       string        // partial index predicate (PostgreSQL, SQLite, MSSQL)
+	Storage     string        // PostgreSQL WITH (...) storage parameters, e.g. "fillfactor=90"
+	Comment     string        // MySQL COMMENT on index
+}
+
+// DropIndexOptions controls advanced index removal behaviour.
+type DropIndexOptions struct {
+	IfExists bool   // emit IF EXISTS where supported
+	Schema   string // schema-qualify the index name (PostgreSQL only)
+}
+
 // JoinType represents the type of JOIN operation
 type JoinType string
-
-const (
-	JOIN_INNER JoinType = "INNER"
-	JOIN_LEFT  JoinType = "LEFT"
-	JOIN_RIGHT JoinType = "RIGHT"
-	JOIN_FULL  JoinType = "FULL"
-	JOIN_CROSS JoinType = "CROSS"
-)
 
 // Join represents a database JOIN operation
 type Join struct {
@@ -369,6 +386,194 @@ func (b *Builder) CreateIndex(indexName string, columnName ...string) (string, e
 	return sql, nil
 }
 
+// CreateIndexWithOptions generates a CREATE INDEX statement with full dialect-aware options.
+//
+// Example (PostgreSQL partial unique index):
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+//	    Table("users").
+//	    CreateIndexWithOptions("idx_users_active_email", sb.IndexOptions{
+//	        Unique: true,
+//	        Columns: []sb.IndexColumn{{Name: "email"}},
+//	        Where:  "deleted_at IS NULL",
+//	    })
+//	// CREATE UNIQUE INDEX IF NOT EXISTS "idx_users_active_email"
+//	//   ON "users" ("email") WHERE deleted_at IS NULL;
+func (b *Builder) CreateIndexWithOptions(name string, opts IndexOptions) (string, error) {
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+	if name == "" {
+		return "", ErrEmptyIndexName
+	}
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if len(opts.Columns) == 0 {
+		return "", ErrEmptyColumns
+	}
+
+	var sb strings.Builder
+
+	sb.WriteString("CREATE ")
+	if opts.Unique {
+		sb.WriteString("UNIQUE ")
+	}
+	sb.WriteString("INDEX ")
+
+	// IF NOT EXISTS — supported by PostgreSQL, SQLite; not by MySQL or MSSQL
+	if opts.IfNotExists && (b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE) {
+		sb.WriteString("IF NOT EXISTS ")
+	}
+
+	sb.WriteString(b.quoteTable(name))
+	sb.WriteString(" ON ")
+	sb.WriteString(b.quoteTable(b.sqlTableName))
+
+	// USING clause — PostgreSQL only for standard index types; MySQL uses it for FULLTEXT/SPATIAL
+	if opts.Using != "" {
+		switch b.Dialect {
+		case DIALECT_POSTGRES:
+			sb.WriteString(" USING ")
+			sb.WriteString(opts.Using)
+		case DIALECT_MYSQL:
+			// MySQL uses USING inside the column list for BTREE/HASH,
+			// but FULLTEXT/SPATIAL are keywords before the column list.
+			if opts.Using == INDEX_TYPE_FULLTEXT || opts.Using == INDEX_TYPE_SPATIAL {
+				// handled below — rewrite the CREATE line
+			}
+		}
+	}
+
+	// MySQL FULLTEXT / SPATIAL require the keyword before the column list,
+	// replacing "INDEX" entirely. Rebuild from scratch for these cases.
+	if b.Dialect == DIALECT_MYSQL &&
+		(opts.Using == INDEX_TYPE_FULLTEXT || opts.Using == INDEX_TYPE_SPATIAL) {
+		sb.Reset()
+		sb.WriteString("CREATE ")
+		if opts.Unique {
+			sb.WriteString("UNIQUE ")
+		}
+		sb.WriteString(opts.Using) // FULLTEXT or SPATIAL
+		sb.WriteString(" INDEX ")
+		sb.WriteString(b.quoteTable(name))
+		sb.WriteString(" ON ")
+		sb.WriteString(b.quoteTable(b.sqlTableName))
+	}
+
+	// Column list
+	sb.WriteString(" (")
+	for i, col := range opts.Columns {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(b.quoteColumn(col.Name))
+
+		// MySQL prefix length must come immediately after the column name, before direction
+		if b.Dialect == DIALECT_MYSQL && col.Length > 0 {
+			sb.WriteString("(")
+			sb.WriteString(strconv.Itoa(col.Length))
+			sb.WriteString(")")
+		}
+
+		// Direction (not meaningful for FULLTEXT/SPATIAL but harmless to omit)
+		// Only output direction if explicitly set (not empty and not default ASC)
+		if col.Direction != "" && col.Direction != "ASC" &&
+			!(b.Dialect == DIALECT_MYSQL &&
+				(opts.Using == INDEX_TYPE_FULLTEXT || opts.Using == INDEX_TYPE_SPATIAL)) {
+			sb.WriteString(" ")
+			sb.WriteString(strings.ToUpper(col.Direction))
+		}
+	}
+
+	// MySQL BTREE/HASH USING goes inside the column list parentheses
+	if b.Dialect == DIALECT_MYSQL && opts.Using != "" &&
+		opts.Using != INDEX_TYPE_FULLTEXT && opts.Using != INDEX_TYPE_SPATIAL {
+		sb.WriteString(" USING ")
+		sb.WriteString(opts.Using)
+	}
+
+	sb.WriteString(")")
+
+	// INCLUDE clause — PostgreSQL 11+ and MSSQL
+	if len(opts.Include) > 0 &&
+		(b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_MSSQL) {
+		sb.WriteString(" INCLUDE (")
+		for i, col := range opts.Include {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(b.quoteColumn(col))
+		}
+		sb.WriteString(")")
+	}
+
+	// Partial index WHERE clause — PostgreSQL, SQLite, MSSQL
+	if opts.Where != "" &&
+		(b.Dialect == DIALECT_POSTGRES ||
+			b.Dialect == DIALECT_SQLITE ||
+			b.Dialect == DIALECT_MSSQL) {
+		sb.WriteString(" WHERE ")
+		sb.WriteString(opts.Where)
+	}
+
+	// PostgreSQL storage parameters
+	if b.Dialect == DIALECT_POSTGRES && opts.Storage != "" {
+		sb.WriteString(" WITH (")
+		sb.WriteString(opts.Storage)
+		sb.WriteString(")")
+	}
+
+	// MySQL index comment
+	if b.Dialect == DIALECT_MYSQL && opts.Comment != "" {
+		sb.WriteString(" COMMENT '")
+		sb.WriteString(strings.ReplaceAll(opts.Comment, "'", "''"))
+		sb.WriteString("'")
+	}
+
+	sb.WriteString(";")
+	return sb.String(), nil
+}
+
+// CreateUniqueIndex creates a UNIQUE index on one or more columns.
+func (b *Builder) CreateUniqueIndex(name string, columns ...string) (string, error) {
+	return b.CreateIndexWithOptions(name, IndexOptions{
+		Unique:  true,
+		Columns: indexColumnsFromNames(columns),
+	})
+}
+
+// CreateCompositeIndex creates an index on multiple columns with explicit ordering.
+func (b *Builder) CreateCompositeIndex(name string, columns []IndexColumn) (string, error) {
+	return b.CreateIndexWithOptions(name, IndexOptions{Columns: columns})
+}
+
+// CreatePartialIndex creates an index with a WHERE predicate (PostgreSQL, SQLite, MSSQL).
+func (b *Builder) CreatePartialIndex(name string, where string, columns ...string) (string, error) {
+	return b.CreateIndexWithOptions(name, IndexOptions{
+		Columns: indexColumnsFromNames(columns),
+		Where:   where,
+	})
+}
+
+// CreateCoveringIndex creates a covering index using the INCLUDE clause (PostgreSQL, MSSQL).
+func (b *Builder) CreateCoveringIndex(name string, include []string, columns ...string) (string, error) {
+	return b.CreateIndexWithOptions(name, IndexOptions{
+		Columns: indexColumnsFromNames(columns),
+		Include: include,
+	})
+}
+
+// indexColumnsFromNames is a package-level helper that converts plain column names
+// to []IndexColumn with default ASC direction (empty string means default ASC).
+func indexColumnsFromNames(names []string) []IndexColumn {
+	cols := make([]IndexColumn, len(names))
+	for i, n := range names {
+		cols[i] = IndexColumn{Name: n, Direction: ""} // Empty string means default ASC
+	}
+	return cols
+}
+
 // DropIndex removes an index from a table.
 // The method generates database-specific SQL:
 //   - MySQL: DROP INDEX `index_name` ON `table_name`;
@@ -473,6 +678,61 @@ func (b *Builder) DropIndexWithSchema(indexName string, schema string) (string, 
 		// Other dialects don't support schema-qualified index names
 		return b.DropIndex(indexName)
 	}
+}
+
+// DropIndexWithOptions generates a DROP INDEX statement with full dialect-aware options.
+func (b *Builder) DropIndexWithOptions(name string, opts DropIndexOptions) (string, error) {
+	if err := b.validateAndReturnError(); err != nil {
+		return "", err
+	}
+	if name == "" {
+		return "", ErrEmptyIndexName
+	}
+
+	var sb strings.Builder
+	sb.WriteString("DROP INDEX ")
+
+	switch b.Dialect {
+	case DIALECT_POSTGRES:
+		if opts.IfExists {
+			sb.WriteString("IF EXISTS ")
+		}
+		if opts.Schema != "" {
+			sb.WriteString(b.quoteTable(opts.Schema))
+			sb.WriteString(".")
+		}
+		sb.WriteString(b.quoteTable(name))
+
+	case DIALECT_SQLITE:
+		if opts.IfExists {
+			sb.WriteString("IF EXISTS ")
+		}
+		sb.WriteString(b.quoteTable(name))
+
+	case DIALECT_MSSQL:
+		if opts.IfExists {
+			sb.WriteString("IF EXISTS ")
+		}
+		sb.WriteString(b.quoteTable(name))
+		if b.sqlTableName != "" {
+			sb.WriteString(" ON ")
+			sb.WriteString(b.quoteTable(b.sqlTableName))
+		}
+
+	case DIALECT_MYSQL:
+		// MySQL has no IF EXISTS for DROP INDEX
+		sb.WriteString(b.quoteTable(name))
+		if b.sqlTableName != "" {
+			sb.WriteString(" ON ")
+			sb.WriteString(b.quoteTable(b.sqlTableName))
+		}
+
+	default:
+		return "", ErrInvalidDialect
+	}
+
+	sb.WriteString(";")
+	return sb.String(), nil
 }
 
 // Join adds a JOIN clause to the query.

@@ -14,7 +14,7 @@ Includes a wrapper for the mainstream DB package to allow transparent working wi
 - ✅ **Parameterized Queries** - SQL injection protection by default with dialect-specific placeholders
 - ✅ **Subquery Support** - IN, NOT IN, EXISTS, NOT EXISTS, and comparison subqueries
 - ✅ **JOIN Operations** - INNER, LEFT, RIGHT, FULL OUTER, and CROSS joins with table aliases
-- ✅ **Index Management** - CREATE INDEX and DROP INDEX with database-specific options
+- ✅ **Enhanced Index Management** - Advanced index types (GIN, FULLTEXT, partial, covering) with database-specific options
 - ✅ **Zero-Panic Error Handling** - All errors returned gracefully, no panics anywhere
 - ✅ **Fluent API with Error Collection** - Chain operations with comprehensive error validation
 
@@ -144,6 +144,47 @@ if err != nil {
 // Execute: db.Query(sql, params...)
 // SQL: SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > ?)
 // Params: ["1000"]
+```
+
+#### Enhanced Index Support
+```go
+// Simple unique index
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    CreateUniqueIndex("idx_users_email", "email")
+
+// PostgreSQL GIN index with covering columns
+sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+    Table("documents").
+    CreateIndexWithOptions("idx_search", sb.IndexOptions{
+        Unique:      true,
+        IfNotExists: true,
+        Using:       sb.INDEX_TYPE_GIN,
+        Columns:     []sb.IndexColumn{{Name: "search_vector"}},
+        Include:     []string{"title", "content"},
+        Where:       "published = true",
+        Storage:     "fillfactor=90",
+    })
+
+// MySQL FULLTEXT index with prefix and comment
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("articles").
+    CreateIndexWithOptions("idx_content", sb.IndexOptions{
+        Using:   sb.INDEX_TYPE_FULLTEXT,
+        Columns: []sb.IndexColumn{
+            {Name: "title", Length: 100},
+            {Name: "content", Length: 255},
+        },
+        Comment: "Full-text search index",
+    })
+
+// Enhanced DROP with schema support
+sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+    Table("users").
+    DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{
+        IfExists: true,
+        Schema:   "public",
+    })
 ```
 
 #### Error Handling Example

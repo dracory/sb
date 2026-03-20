@@ -1743,3 +1743,520 @@ func TestSubqueryValidationWithNilSubquery(t *testing.T) {
 		t.Errorf("Expected error message 'subquery cannot be nil', got '%s'", err.Error())
 	}
 }
+
+// Enhanced Index Support Tests
+
+func TestBuilderCreateIndexWithOptionsBasic(t *testing.T) {
+	// Test basic index creation (should work like CreateIndex)
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_email` ON `users` (`email`);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateUniqueIndex(t *testing.T) {
+	// Test UNIQUE index creation
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		CreateUniqueIndex("idx_users_email_unique", "email")
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE UNIQUE INDEX "idx_users_email_unique" ON "users" ("email");`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateCompositeIndex(t *testing.T) {
+	// Test composite index with ordering
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		CreateCompositeIndex("idx_orders_status_date", []sb.IndexColumn{
+			{Name: "status", Direction: "ASC"},
+			{Name: "created_at", Direction: "DESC"},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_orders_status_date` ON `orders` (`status`, `created_at` DESC);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreatePartialIndex(t *testing.T) {
+	// Test partial index (PostgreSQL)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		CreatePartialIndex("idx_users_active", "deleted_at IS NULL", "email")
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE INDEX "idx_users_active" ON "users" ("email") WHERE deleted_at IS NULL;`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateCoveringIndex(t *testing.T) {
+	// Test covering index with INCLUDE clause (PostgreSQL)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		CreateCoveringIndex("idx_orders_customer", []string{"customer_name", "total"}, "customer_id")
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE INDEX "idx_orders_customer" ON "orders" ("customer_id") INCLUDE ("customer_name", "total");`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateIndexWithOptionsIfNotExists(t *testing.T) {
+	// Test IF NOT EXISTS support (PostgreSQL, SQLite)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			IfNotExists: true,
+			Columns:     []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE INDEX IF NOT EXISTS "idx_users_email" ON "users" ("email");`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateIndexWithOptionsIfNotExistsMySQL(t *testing.T) {
+	// Test that MySQL silently omits IF NOT EXISTS
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			IfNotExists: true,
+			Columns:     []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_email` ON `users` (`email`);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateMySQLFullTextIndex(t *testing.T) {
+	// Test MySQL FULLTEXT index
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("articles").
+		CreateIndexWithOptions("idx_articles_content", sb.IndexOptions{
+			Using:   sb.INDEX_TYPE_FULLTEXT,
+			Columns: []sb.IndexColumn{{Name: "title"}, {Name: "content"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE FULLTEXT INDEX `idx_articles_content` ON `articles` (`title`, `content`);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateMySQLSpatialIndex(t *testing.T) {
+	// Test MySQL SPATIAL index
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("locations").
+		CreateIndexWithOptions("idx_locations_coords", sb.IndexOptions{
+			Using:   sb.INDEX_TYPE_SPATIAL,
+			Columns: []sb.IndexColumn{{Name: "coordinates"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE SPATIAL INDEX `idx_locations_coords` ON `locations` (`coordinates`);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreatePostgreSQLGINIndex(t *testing.T) {
+	// Test PostgreSQL GIN index
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("documents").
+		CreateIndexWithOptions("idx_documents_search", sb.IndexOptions{
+			Using:   sb.INDEX_TYPE_GIN,
+			Columns: []sb.IndexColumn{{Name: "search_vector"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE INDEX "idx_documents_search" ON "documents" USING GIN ("search_vector");`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateMySQLPrefixLength(t *testing.T) {
+	// Test MySQL prefix length on text column
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_name", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "name", Length: 50}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_name` ON `users` (`name`(50));"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateMySQLUsingBTREE(t *testing.T) {
+	// Test MySQL USING BTREE inside column list
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Using:   sb.INDEX_TYPE_BTREE,
+			Columns: []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_email` ON `users` (`email` USING BTREE);"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateIndexWithStorageParams(t *testing.T) {
+	// Test PostgreSQL storage parameters
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "email"}},
+			Storage: "fillfactor=90",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE INDEX "idx_users_email" ON "users" ("email") WITH (fillfactor=90);`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateIndexWithComment(t *testing.T) {
+	// Test MySQL index comment
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "email"}},
+			Comment: "Index for user email lookups",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_email` ON `users` (`email`) COMMENT 'Index for user email lookups';"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderCreateIndexWithEscapedComment(t *testing.T) {
+	// Test MySQL index comment with single quote escaping
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_name", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "name"}},
+			Comment: "User's name index",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE INDEX `idx_users_name` ON `users` (`name`) COMMENT 'User''s name index';"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsBasic(t *testing.T) {
+	// Test basic DROP INDEX (should work like DropIndex)
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "DROP INDEX `idx_users_email` ON `users`;"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsIfExists(t *testing.T) {
+	// Test DROP INDEX IF EXISTS (PostgreSQL)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{
+			IfExists: true,
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `DROP INDEX IF EXISTS "idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsWithSchema(t *testing.T) {
+	// Test DROP INDEX with schema (PostgreSQL)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{
+			Schema: "public",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `DROP INDEX "public"."idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsIfExistsAndSchema(t *testing.T) {
+	// Test DROP INDEX IF EXISTS with schema (PostgreSQL)
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{
+			IfExists: true,
+			Schema:   "public",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `DROP INDEX IF EXISTS "public"."idx_users_email";`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsMySQLNoIfExists(t *testing.T) {
+	// Test that MySQL silently omits IF EXISTS
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndexWithOptions("idx_users_email", sb.DropIndexOptions{
+			IfExists: true,
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "DROP INDEX `idx_users_email` ON `users`;"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+// Error handling tests
+
+func TestBuilderCreateIndexWithOptionsEmptyName(t *testing.T) {
+	// Test error handling for empty index name
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err == nil {
+		t.Fatal("Expected error for empty index name")
+	}
+	if err.Error() != "ValidationError: index name cannot be empty" {
+		t.Fatalf("Expected 'ValidationError: index name cannot be empty' but got: %v", err)
+	}
+}
+
+func TestBuilderCreateIndexWithOptionsMissingTable(t *testing.T) {
+	// Test error handling for missing table
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Columns: []sb.IndexColumn{{Name: "email"}},
+		})
+
+	if err == nil {
+		t.Fatal("Expected error for missing table")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Fatalf("Expected 'ValidationError: no table specified' but got: %v", err)
+	}
+}
+
+func TestBuilderCreateIndexWithOptionsEmptyColumns(t *testing.T) {
+	// Test error handling for empty columns
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		CreateIndexWithOptions("idx_users_email", sb.IndexOptions{
+			Columns: []sb.IndexColumn{},
+		})
+
+	if err == nil {
+		t.Fatal("Expected error for empty columns")
+	}
+	if err.Error() != "ValidationError: columns cannot be empty" {
+		t.Fatalf("Expected 'ValidationError: columns cannot be empty' but got: %v", err)
+	}
+}
+
+func TestBuilderDropIndexWithOptionsEmptyName(t *testing.T) {
+	// Test error handling for empty index name
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		DropIndexWithOptions("", sb.DropIndexOptions{})
+
+	if err == nil {
+		t.Fatal("Expected error for empty index name")
+	}
+	if err.Error() != "ValidationError: index name cannot be empty" {
+		t.Fatalf("Expected 'ValidationError: index name cannot be empty' but got: %v", err)
+	}
+}
+
+// Dialect-specific comprehensive tests
+
+func TestBuilderEnhancedIndexSupportMySQL(t *testing.T) {
+	// Test all MySQL-specific features work together
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("products").
+		CreateIndexWithOptions("idx_products_search", sb.IndexOptions{
+			Unique:  true,
+			Using:   sb.INDEX_TYPE_FULLTEXT,
+			Columns: []sb.IndexColumn{{Name: "name", Length: 100}, {Name: "description", Length: 255}},
+			Comment: "Full-text search index for products",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := "CREATE UNIQUE FULLTEXT INDEX `idx_products_search` ON `products` (`name`(100), `description`(255)) COMMENT 'Full-text search index for products';"
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderEnhancedIndexSupportPostgreSQL(t *testing.T) {
+	// Test all PostgreSQL-specific features work together
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		CreateIndexWithOptions("idx_orders_customer_active", sb.IndexOptions{
+			Unique:      true,
+			IfNotExists: true,
+			Using:       sb.INDEX_TYPE_GIN,
+			Columns:     []sb.IndexColumn{{Name: "customer_id"}},
+			Include:     []string{"order_date", "total"},
+			Where:       "status = 'active'",
+			Storage:     "fillfactor=70",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "idx_orders_customer_active" ON "orders" USING GIN ("customer_id") INCLUDE ("order_date", "total") WHERE status = 'active' WITH (fillfactor=70);`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderEnhancedIndexSupportSQLite(t *testing.T) {
+	// Test SQLite features (limited set)
+	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		CreateIndexWithOptions("idx_users_active_email", sb.IndexOptions{
+			Unique:      true,
+			IfNotExists: true,
+			Columns:     []sb.IndexColumn{{Name: "email"}},
+			Where:       "deleted_at IS NULL",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "idx_users_active_email" ON "users" ("email") WHERE deleted_at IS NULL;`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderEnhancedIndexSupportMSSQL(t *testing.T) {
+	// Test MSSQL features
+	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("orders").
+		CreateIndexWithOptions("idx_orders_customer", sb.IndexOptions{
+			Unique:  true,
+			Columns: []sb.IndexColumn{{Name: "customer_id", Direction: "DESC"}},
+			Include: []string{"order_date", "total"},
+			Where:   "status = 'active'",
+		})
+
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+
+	expected := `CREATE UNIQUE INDEX [idx_orders_customer] ON [orders] ([customer_id] DESC) INCLUDE ([order_date], [total]) WHERE status = 'active';`
+	if sql != expected {
+		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
+	}
+}

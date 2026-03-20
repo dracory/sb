@@ -38,3 +38,19 @@ const MAX_DATETIME = "9999-12-31 23:59:59"
 // Sortable
 const ASC = "asc"
 const DESC = "desc"
+
+// Index Types
+const INDEX_TYPE_BTREE = "BTREE"
+const INDEX_TYPE_HASH = "HASH"
+const INDEX_TYPE_GIN = "GIN"
+const INDEX_TYPE_GIST = "GIST"
+const INDEX_TYPE_BRIN = "BRIN"
+const INDEX_TYPE_FULLTEXT = "FULLTEXT"
+const INDEX_TYPE_SPATIAL = "SPATIAL"
+
+// Join Types
+const JOIN_INNER = "INNER"
+const JOIN_LEFT = "LEFT"
+const JOIN_RIGHT = "RIGHT"
+const JOIN_FULL = "FULL"
+const JOIN_CROSS = "CROSS"
