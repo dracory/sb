@@ -32,7 +32,7 @@ func TestMySQLIntegration(t *testing.T) {
 	defer db.Close()
 
 	// Test table creation
-	err = createTestTable(db, "test_users")
+	err = createTestTable(db, "test_users", sb.DIALECT_MYSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestPostgreSQLIntegration(t *testing.T) {
 	defer db.Close()
 
 	// Test table creation
-	err = createTestTable(db, "test_users")
+	err = createTestTable(db, "test_users", sb.DIALECT_POSTGRES)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestSQLiteIntegration(t *testing.T) {
 	defer db.Close()
 
 	// Test table creation
-	err = createTestTable(db, "test_users")
+	err = createTestTable(db, "test_users", sb.DIALECT_SQLITE)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	}
 
 	// Create table and execute valid SQL
-	err = createTestTable(db, "test_users")
+	err = createTestTable(db, "test_users", sb.DIALECT_SQLITE)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
@@ -218,18 +218,46 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	t.Logf("Successfully executed error handling integration test")
 }
 
-// createTestTable creates a simple test table for integration testing
-func createTestTable(db *sql.DB, tableName string) error {
-	createSQL := fmt.Sprintf(`
-		CREATE TABLE %s (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name VARCHAR(100) NOT NULL,
-			email VARCHAR(100) NOT NULL,
-			status VARCHAR(20) DEFAULT 'active',
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)
-	`, tableName)
+// createTestTable creates a simple test table for integration testing using SB library
+func createTestTable(db *sql.DB, tableName string, dialect string) error {
+	// Create table using SB library with proper dialect-specific syntax
+	createSQL, err := sb.NewBuilder(dialect).
+		Table(tableName).
+		Column(sb.Column{
+			Name:          "id",
+			Type:          sb.COLUMN_TYPE_INTEGER,
+			AutoIncrement: true,
+			PrimaryKey:    true,
+		}).
+		Column(sb.Column{
+			Name:     "name",
+			Type:     sb.COLUMN_TYPE_STRING,
+			Length:   100,
+			Nullable: false, // NOT NULL
+		}).
+		Column(sb.Column{
+			Name:     "email",
+			Type:     sb.COLUMN_TYPE_STRING,
+			Length:   100,
+			Nullable: false, // NOT NULL
+		}).
+		Column(sb.Column{
+			Name:    "status",
+			Type:    sb.COLUMN_TYPE_STRING,
+			Length:  20,
+			Default: "active",
+		}).
+		Column(sb.Column{
+			Name:    "created_at",
+			Type:    sb.COLUMN_TYPE_DATETIME,
+			Default: "CURRENT_TIMESTAMP",
+		}).
+		Create()
 
-	_, err := db.Exec(createSQL)
+	if err != nil {
+		return fmt.Errorf("failed to generate CREATE TABLE SQL: %w", err)
+	}
+
+	_, err = db.Exec(createSQL)
 	return err
 }
