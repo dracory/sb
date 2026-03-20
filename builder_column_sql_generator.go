@@ -84,11 +84,15 @@ func (g MySQLColumnSQLGenerator) GenerateSQL(column Column) string {
 type PostgreSQLColumnSQLGenerator struct{}
 
 func (g PostgreSQLColumnSQLGenerator) GenerateSQL(column Column) string {
+	// For PostgreSQL, SERIAL replaces INTEGER when AutoIncrement is true
 	columnType := lo.
 		IfF(column.Type == COLUMN_TYPE_STRING, func() string {
 			return "TEXT"
 		}).
 		ElseIfF(column.Type == COLUMN_TYPE_INTEGER, func() string {
+			if column.AutoIncrement {
+				return "SERIAL"
+			}
 			return "INTEGER"
 		}).
 		ElseIfF(column.Type == COLUMN_TYPE_FLOAT, func() string {
@@ -133,10 +137,8 @@ func (g PostgreSQLColumnSQLGenerator) GenerateSQL(column Column) string {
 		}
 	}
 
-	// Auto increment
-	if column.AutoIncrement {
-		sql += " SERIAL"
-	}
+	// Auto increment is already handled in columnType for SERIAL
+	// No need to append " SERIAL" here
 
 	// Primary key
 	if column.PrimaryKey {
