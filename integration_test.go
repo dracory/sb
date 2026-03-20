@@ -66,7 +66,7 @@ func TestPostgreSQLIntegration(t *testing.T) {
 	}
 
 	// Skip if PostgreSQL is not available
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", "postgers", "55432", "test", "test", "test")
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", "postgres", "55432", "test", "test", "test")
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		t.Skip("PostgreSQL not available for integration testing:", err)
