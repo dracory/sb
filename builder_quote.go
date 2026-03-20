@@ -43,7 +43,7 @@ func (b *Builder) quoteValue(value string) string {
 	}
 
 	if b.Dialect == DIALECT_POSTGRES {
-		value = `"` + b.escapePostgres(value) + `"`
+		value = `'` + b.escapePostgres(value) + `'`
 	}
 
 	if b.Dialect == DIALECT_SQLITE {
@@ -82,11 +82,16 @@ func (b *Builder) escapeMysql(value string) string {
 }
 
 func (b *Builder) escapePostgres(value string) string {
-	escapedStr := strings.ReplaceAll(value, `"`, `""`)
+	escapedStr := strings.ReplaceAll(value, "'", "''")
 	return escapedStr
 }
 
 func (b *Builder) escapeSqlite(value string) string {
+	escapedStr := strings.ReplaceAll(value, "'", "''")
+	return escapedStr
+}
+
+func (b *Builder) escapeMssql(value string) string {
 	escapedStr := strings.ReplaceAll(value, "'", "''")
 	return escapedStr
 }

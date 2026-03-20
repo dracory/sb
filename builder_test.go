@@ -1027,7 +1027,7 @@ func TestBuilderTableSelectFullPostgres(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := `SELECT "id", "first_name", "last_name" FROM "users" WHERE "first_name" <> "Jane" GROUP BY "passport" ORDER BY "first_name" ASC LIMIT 10 OFFSET 20;`
+	expected := `SELECT "id", "first_name", "last_name" FROM "users" WHERE "first_name" <> 'Jane' GROUP BY "passport" ORDER BY "first_name" ASC LIMIT 10 OFFSET 20;`
 	if sql != expected {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sql)
 	}
@@ -1085,7 +1085,7 @@ func TestBuilderTableInsertPostgres(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := `INSERT INTO "users" ("first_name", "last_name") VALUES ("Tom", "Jones") LIMIT 1;`
+	expected := `INSERT INTO "users" ("first_name", "last_name") VALUES ('Tom', 'Jones') LIMIT 1;`
 	if sql != expected {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sql)
 	}
@@ -1170,7 +1170,7 @@ func TestBuilderTableUpdatePostgres(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := `UPDATE "users" SET "first_name"="Tom", "last_name"="Jones" WHERE "id" = "1" LIMIT 1;`
+	expected := `UPDATE "users" SET "first_name"='Tom', "last_name"='Jones' WHERE "id" = '1' LIMIT 1;`
 	if sql != expected {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sql)
 	}
@@ -1226,7 +1226,7 @@ func TestBuilderTableSelectPostgreslInj(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := `SELECT * FROM "users" WHERE "id" = "58"" OR 1 = 1;--";`
+	expected := `SELECT * FROM "users" WHERE "id" = '58" OR 1 = 1;--';`
 	if sql != expected {
 		t.Fatal("Expected:\n", expected, "\nbut found:\n", sql)
 	}
@@ -2232,7 +2232,7 @@ func TestBuilderSubqueryInPostgreSQL(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > \"1000\");"
+	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > '1000');"
 	if sql != expected {
 		t.Fatalf("Expected: %s but found: %s", expected, sql)
 	}
@@ -2359,7 +2359,7 @@ func TestBuilderSubqueryNotExistsPostgreSQL(t *testing.T) {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	expected := "SELECT \"name\", \"email\" FROM \"users\" WHERE NOT EXISTS (SELECT * FROM \"orders\" WHERE \"user_id\" = \"users.id\" AND \"status\" = \"active\");"
+	expected := "SELECT \"name\", \"email\" FROM \"users\" WHERE NOT EXISTS (SELECT * FROM \"orders\" WHERE \"user_id\" = 'users.id' AND \"status\" = 'active');"
 	if sql != expected {
 		t.Fatalf("Expected: %s but found: %s", expected, sql)
 	}
