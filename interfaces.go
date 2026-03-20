@@ -87,6 +87,21 @@ type BuilderInterface interface {
 	// Where sets the where clause
 	Where(where *Where) BuilderInterface
 
+	// Subquery creates a subquery builder for use in WHERE clauses
+	Subquery() BuilderInterface
+
+	// Exists adds an EXISTS subquery condition
+	Exists(subquery BuilderInterface) BuilderInterface
+
+	// NotExists adds a NOT EXISTS subquery condition
+	NotExists(subquery BuilderInterface) BuilderInterface
+
+	// InSubquery adds an IN subquery condition
+	InSubquery(subquery BuilderInterface) BuilderInterface
+
+	// NotInSubquery adds a NOT IN subquery condition
+	NotInSubquery(subquery BuilderInterface) BuilderInterface
+
 	// Truncate truncates a table (removes all data)
 	Truncate() string
 

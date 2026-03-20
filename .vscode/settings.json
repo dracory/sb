@@ -4,5 +4,6 @@
         "BYTEA",
         "glebarez",
         "LONGBLOB"
-    ]
+    ],
+    "kiroAgent.configureMCP": "Disabled"
 }

@@ -66,6 +66,7 @@ type Builder struct {
 	sqlLimit           int64
 	sqlOffset          int64
 	sqlOrderBy         []OrderBy
+	sqlSelectColumns   []string
 	sqlTableName       string
 	sqlViewName        string
 	sqlViewColumns     []string
@@ -712,6 +713,9 @@ func (b *Builder) Select(columns []string) string {
 		panic("In method Select() no table specified to select from!")
 	}
 
+	// Store the select columns for subquery use
+	b.sqlSelectColumns = columns
+
 	join := b.joinToSQL()
 
 	groupBy := ""
@@ -944,6 +948,134 @@ func (b *Builder) Where(where *Where) BuilderInterface {
 	}
 
 	b.sqlWhere = append(b.sqlWhere, *where)
+	return b
+}
+
+// Subquery creates a subquery builder for use in WHERE clauses.
+// Returns a new Builder instance with the same dialect for building subqueries.
+//
+// Example:
+//
+//	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("orders").
+//	  Select([]string{"user_id"}).
+//	  Where(&sb.Where{Column: "total", Operator: ">", Value: 1000})
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("users").
+//	  InSubquery(subquery).
+//	  Select([]string{"name"})
+func (b *Builder) Subquery() BuilderInterface {
+	return NewBuilder(b.Dialect)
+}
+
+// Exists adds an EXISTS subquery condition to the query.
+// The subquery parameter is the subquery to check for existence.
+//
+// Example:
+//
+//	activeOrders := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("orders").
+//	  Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("users").
+//	  Exists(activeOrders).
+//	  Select([]string{"name"})
+func (b *Builder) Exists(subquery BuilderInterface) BuilderInterface {
+	if subquery == nil {
+		panic("subquery cannot be nil")
+	}
+
+	where := Where{
+		Operator: "EXISTS",
+		Subquery: subquery.(*Builder),
+		IsNot:    false,
+	}
+	b.sqlWhere = append(b.sqlWhere, where)
+	return b
+}
+
+// NotExists adds a NOT EXISTS subquery condition to the query.
+// The subquery parameter is the subquery to check for non-existence.
+//
+// Example:
+//
+//	activeOrders := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("orders").
+//	  Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("users").
+//	  NotExists(activeOrders).
+//	  Select([]string{"name"})
+func (b *Builder) NotExists(subquery BuilderInterface) BuilderInterface {
+	if subquery == nil {
+		panic("subquery cannot be nil")
+	}
+
+	where := Where{
+		Operator: "EXISTS",
+		Subquery: subquery.(*Builder),
+		IsNot:    true,
+	}
+	b.sqlWhere = append(b.sqlWhere, where)
+	return b
+}
+
+// InSubquery adds an IN subquery condition to the query.
+// The subquery parameter is the subquery to use for the IN clause.
+//
+// Example:
+//
+//	highValueUsers := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("orders").
+//	  Select([]string{"user_id"}).
+//	  Where(&sb.Where{Column: "total", Operator: ">", Value: 1000})
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("users").
+//	  InSubquery(highValueUsers).
+//	  Select([]string{"name"})
+func (b *Builder) InSubquery(subquery BuilderInterface) BuilderInterface {
+	if subquery == nil {
+		panic("subquery cannot be nil")
+	}
+
+	where := Where{
+		Operator: "IN",
+		Subquery: subquery.(*Builder),
+		IsNot:    false,
+	}
+	b.sqlWhere = append(b.sqlWhere, where)
+	return b
+}
+
+// NotInSubquery adds a NOT IN subquery condition to the query.
+// The subquery parameter is the subquery to use for the NOT IN clause.
+//
+// Example:
+//
+//	inactiveUsers := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("orders").
+//	  Select([]string{"user_id"}).
+//	  Where(&sb.Where{Column: "status", Operator: "=", Value: "inactive"})
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+//	  Table("users").
+//	  NotInSubquery(inactiveUsers).
+//	  Select([]string{"name"})
+func (b *Builder) NotInSubquery(subquery BuilderInterface) BuilderInterface {
+	if subquery == nil {
+		panic("subquery cannot be nil")
+	}
+
+	where := Where{
+		Operator: "IN",
+		Subquery: subquery.(*Builder),
+		IsNot:    true,
+	}
+	b.sqlWhere = append(b.sqlWhere, where)
 	return b
 }
 

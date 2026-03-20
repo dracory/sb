@@ -1833,3 +1833,298 @@ func TestBuilderJoinNoJoins(t *testing.T) {
 		t.Fatalf("Expected: %s but found: %s", expected, sql)
 	}
 }
+
+// Test Builder Subquery functionality
+
+func TestBuilderSubqueryInMySQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryInPostgreSQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > \"1000\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryInSQLite(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT \"name\" FROM \"users\" WHERE \"id\" IN (SELECT * FROM \"orders\" WHERE \"total\" > '1000');"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryInMSSQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT [name] FROM [users] WHERE [id] IN (SELECT * FROM [orders] WHERE [total] > 1000);"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryNotInMySQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "inactive"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		NotInSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` NOT IN (SELECT * FROM `orders` WHERE `status` = \"inactive\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryExistsMySQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"}).
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		Exists(subquery).
+		Select([]string{"name", "email"})
+
+	expected := "SELECT `name`, `email` FROM `users` WHERE EXISTS (SELECT * FROM `orders` WHERE `user_id` = \"users.id\" AND `status` = \"active\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryNotExistsPostgreSQL(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"}).
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
+
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("users").
+		NotExists(subquery).
+		Select([]string{"name", "email"})
+
+	expected := "SELECT \"name\", \"email\" FROM \"users\" WHERE NOT EXISTS (SELECT * FROM \"orders\" WHERE \"user_id\" = \"users.id\" AND \"status\" = \"active\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryWithWhereClause(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `status` = \"active\" AND `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryWithOrderBy(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		InSubquery(subquery).
+		OrderBy("name", "ASC").
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\") ORDER BY `name` ASC;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryWithLimit(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		InSubquery(subquery).
+		Limit(10).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\") LIMIT 10;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryComparison(t *testing.T) {
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "user_id", Operator: "=", Value: "users.id"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		Where(&sb.Where{
+			Column:   "id",
+			Operator: ">",
+			Subquery: subquery.(*sb.Builder),
+		}).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` > (SELECT * FROM `orders` WHERE `user_id` = \"users.id\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryErrorHandlingNilSubquery(t *testing.T) {
+	// Test panic when subquery is nil
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic but none occurred")
+		}
+		if recovered != "subquery cannot be nil" {
+			t.Fatalf("Expected 'subquery cannot be nil' but got: %v", recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		Exists(nil)
+}
+
+func TestBuilderSubqueryErrorHandlingNilSubqueryNotExists(t *testing.T) {
+	// Test panic when subquery is nil for NotExists
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic but none occurred")
+		}
+		if recovered != "subquery cannot be nil" {
+			t.Fatalf("Expected 'subquery cannot be nil' but got: %v", recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		NotExists(nil)
+}
+
+func TestBuilderSubqueryErrorHandlingNilSubqueryIn(t *testing.T) {
+	// Test panic when subquery is nil for InSubquery
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic but none occurred")
+		}
+		if recovered != "subquery cannot be nil" {
+			t.Fatalf("Expected 'subquery cannot be nil' but got: %v", recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		InSubquery(nil)
+}
+
+func TestBuilderSubqueryErrorHandlingNilSubqueryNotIn(t *testing.T) {
+	// Test panic when subquery is nil for NotInSubquery
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic but none occurred")
+		}
+		if recovered != "subquery cannot be nil" {
+			t.Fatalf("Expected 'subquery cannot be nil' but got: %v", recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		NotInSubquery(nil)
+}
+func TestBuilderSubqueryComplex(t *testing.T) {
+	// Complex subquery with multiple conditions
+	subquery := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("order_items").
+		Where(&sb.Where{Column: "quantity", Operator: ">", Value: "5"}).
+		Where(&sb.Where{Column: "price", Operator: ">", Value: "100"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+		InSubquery(subquery).
+		OrderBy("created_at", "DESC").
+		Limit(20).
+		Select([]string{"*"})
+
+	expected := "SELECT * FROM `orders` WHERE `status` = \"active\" AND `id` IN (SELECT * FROM `order_items` WHERE `quantity` > \"5\" AND `price` > \"100\") ORDER BY `created_at` DESC LIMIT 20;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderSubqueryCreateMethod(t *testing.T) {
+	// Test the Subquery() method
+	subqueryBuilder := sb.NewBuilder(sb.DIALECT_MYSQL).Subquery()
+
+	// Test that the subquery builder works normally
+	subquery := subqueryBuilder.
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		InSubquery(subquery).
+		Select([]string{"name"})
+
+	expected := "SELECT `name` FROM `users` WHERE `id` IN (SELECT * FROM `orders` WHERE `total` > \"1000\");"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}

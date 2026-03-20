@@ -10,6 +10,8 @@ type Where struct {
 	Operator string
 	Type     string
 	Value    string
+	Subquery *Builder
+	IsNot    bool
 	Children []Where
 }
 
@@ -28,6 +30,16 @@ func (b *Builder) whereToSql(wheres []Where) string {
 
 		if where.Type == "" {
 			where.Type = "AND"
+		}
+
+		if where.Subquery != nil {
+			sqlSingle := b.whereToSqlSubquery(where)
+			if len(sql) > 0 {
+				sql = append(sql, where.Type+" "+sqlSingle)
+			} else {
+				sql = append(sql, sqlSingle)
+			}
+			continue
 		}
 
 		if where.Column != "" {
@@ -107,5 +119,64 @@ func (b *Builder) whereToSqlSingle(column, operator, value string) string {
 			sql = columnQuoted + " " + operator + " " + valueQuoted
 		}
 	}
+	if b.Dialect == DIALECT_MSSQL {
+		if value == "NULL" && operator == "=" {
+			sql = columnQuoted + " IS NULL"
+		} else if value == "NULL" && operator == "<>" {
+			sql = columnQuoted + " IS NOT NULL"
+		} else {
+			sql = columnQuoted + " " + operator + " " + valueQuoted
+		}
+	}
 	return sql
+}
+
+// whereToSqlSubquery converts a subquery WHERE condition to SQL
+func (b *Builder) whereToSqlSubquery(where Where) string {
+	// Get the columns from the subquery builder
+	columns := where.Subquery.sqlSelectColumns
+	if len(columns) == 0 {
+		columns = []string{"*"} // Default to all columns
+	}
+
+	// Generate subquery SQL without the trailing semicolon
+	subquerySQL := where.Subquery.Select(columns)
+	// Remove the trailing semicolon from subquery
+	subquerySQL = strings.TrimSuffix(subquerySQL, ";")
+
+	// Handle different subquery operators
+	switch where.Operator {
+	case "EXISTS":
+		if where.IsNot {
+			return "NOT EXISTS (" + subquerySQL + ")"
+		}
+		return "EXISTS (" + subquerySQL + ")"
+	case "IN":
+		if where.Column != "" {
+			columnQuoted := b.quoteColumn(where.Column)
+			if where.IsNot {
+				return columnQuoted + " NOT IN (" + subquerySQL + ")"
+			}
+			return columnQuoted + " IN (" + subquerySQL + ")"
+		} else {
+			// IN without column (used in WHERE clauses without explicit column)
+			// Default to "id" for IN operations without explicit column
+			defaultColumn := "id"
+			if where.IsNot {
+				return b.quoteColumn(defaultColumn) + " NOT IN (" + subquerySQL + ")"
+			}
+			return b.quoteColumn(defaultColumn) + " IN (" + subquerySQL + ")"
+		}
+	default:
+		// For comparison operators (=, >, <, etc.)
+		if where.Column != "" {
+			columnQuoted := b.quoteColumn(where.Column)
+			if where.IsNot {
+				return columnQuoted + " NOT " + where.Operator + " (" + subquerySQL + ")"
+			}
+			return columnQuoted + " " + where.Operator + " (" + subquerySQL + ")"
+		}
+		// Fallback for edge cases
+		return "(" + subquerySQL + ")"
+	}
 }
