@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -67,12 +68,32 @@ func TestPostgreSQLIntegration(t *testing.T) {
 
 	// Skip if PostgreSQL is not available
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", "127.0.0.1", "55432", "test", "test", "test")
+	t.Logf("PostgreSQL DSN: %s", dsn)
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		t.Skip("PostgreSQL not available for integration testing:", err)
 		return
 	}
 	defer db.Close()
+
+	// Test connection with retry logic (PostgreSQL service might need time to be ready)
+	var pingErr error
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		pingErr = db.Ping()
+		if pingErr == nil {
+			t.Logf("Successfully connected to PostgreSQL on attempt %d", i+1)
+			break
+		}
+		t.Logf("Attempt %d: Failed to ping PostgreSQL: %v", i+1, pingErr)
+		if i < maxRetries-1 {
+			time.Sleep(2 * time.Second)
+		}
+	}
+	if pingErr != nil {
+		t.Fatalf("Failed to connect to PostgreSQL after %d attempts: %v", maxRetries, pingErr)
+	}
 
 	// Test table creation
 	err = createTestTable(db, "test_users", sb.DIALECT_POSTGRES)
@@ -258,6 +279,12 @@ func createTestTable(db *sql.DB, tableName string, dialect string) error {
 		return fmt.Errorf("failed to generate CREATE TABLE SQL: %w", err)
 	}
 
+	// Log the SQL for debugging
+	fmt.Printf("DEBUG: Generated SQL for %s:\n%s\n", dialect, createSQL)
+
 	_, err = db.Exec(createSQL)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to execute CREATE TABLE: %w", err)
+	}
+	return nil
 }
