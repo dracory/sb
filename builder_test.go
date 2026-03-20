@@ -1644,3 +1644,192 @@ func TestBuilderDropIndexUnsupportedDialect(t *testing.T) {
 		Table("users").
 		DropIndex("idx_users_email")
 }
+
+// Test Builder JOIN functionality
+
+func TestBuilderJoinInnerMySQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("users", "orders.user_id = users.id").
+		Select([]string{"orders.*", "users.name"})
+
+	expected := "SELECT `orders`.*, `users`.`name` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinLeftPostgreSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		LeftJoin("profiles", "orders.user_id = profiles.user_id").
+		Select([]string{"orders.*", "profiles.avatar"})
+
+	expected := `SELECT "orders".*, "profiles"."avatar" FROM "orders"  LEFT JOIN "profiles" ON orders.user_id = profiles.user_id;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinRightMSSQL(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("orders").
+		RightJoin("users", "orders.user_id = users.id").
+		Select([]string{"orders.*", "users.name"})
+
+	expected := "SELECT [orders].*, [users].[name] FROM [orders]  RIGHT JOIN [users] ON orders.user_id = users.id;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinWithAliasSQLite(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("orders").
+		JoinWithAlias(sb.JOIN_LEFT, "profiles", "p", "orders.user_id = p.user_id").
+		Select([]string{"orders.*", "p.avatar"})
+
+	expected := `SELECT "orders".*, "p"."avatar" FROM "orders"  LEFT JOIN "profiles" AS "p" ON orders.user_id = p.user_id;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinMultiple(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("users", "orders.user_id = users.id").
+		LeftJoin("profiles", "users.id = profiles.user_id").
+		Select([]string{"orders.total", "users.name", "profiles.avatar"})
+
+	expected := "SELECT `orders`.`total`, `users`.`name`, `profiles`.`avatar` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id  LEFT JOIN `profiles` ON users.id = profiles.user_id;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinFullOuter(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		Join(sb.JOIN_FULL, "users", "orders.user_id = users.id").
+		Select([]string{"orders.*", "users.name"})
+
+	expected := `SELECT "orders".*, "users"."name" FROM "orders"  FULL JOIN "users" ON orders.user_id = users.id;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinCross(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("orders").
+		Join(sb.JOIN_CROSS, "users", "1=1").
+		Select([]string{"orders.*", "users.name"})
+
+	expected := `SELECT "orders".*, "users"."name" FROM "orders"  CROSS JOIN "users" ON 1=1;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinWithWhere(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("users", "orders.user_id = users.id").
+		Where(&sb.Where{Column: "orders.status", Operator: "=", Value: "active"}).
+		Select([]string{"orders.*", "users.name"})
+
+	expected := "SELECT `orders`.*, `users`.`name` FROM `orders`  INNER JOIN `users` ON orders.user_id = users.id WHERE `orders`.`status` = \"active\";"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinWithOrderBy(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		LeftJoin("users", "orders.user_id = users.id").
+		OrderBy("orders.created_at", "DESC").
+		Select([]string{"orders.*", "users.name"})
+
+	expected := `SELECT "orders".*, "users"."name" FROM "orders"  LEFT JOIN "users" ON orders.user_id = users.id ORDER BY "orders"."created_at" DESC;`
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinErrorHandlingEmptyCondition(t *testing.T) {
+	// Test panic when ON condition is empty
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when ON condition is empty")
+		}
+
+		expectedMsg := "In method Join() ON condition cannot be empty!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("users", "")
+}
+
+func TestBuilderJoinWithAliasErrorHandlingEmptyCondition(t *testing.T) {
+	// Test panic when ON condition is empty
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("Expected panic when ON condition is empty")
+		}
+
+		expectedMsg := "In method JoinWithAlias() ON condition cannot be empty!"
+		if recovered != expectedMsg {
+			t.Fatalf("Expected panic message: %s but got: %v", expectedMsg, recovered)
+		}
+	}()
+
+	sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		JoinWithAlias(sb.JOIN_LEFT, "profiles", "p", "")
+}
+
+func TestBuilderJoinComplexTableName(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("public.users", "orders.user_id = public.users.id").
+		Select([]string{"orders.*", "public.users.name"})
+
+	expected := "SELECT `orders`.*, `public`.`users`.`name` FROM `orders`  INNER JOIN `public`.`users` ON orders.user_id = public.users.id;"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinUpdate(t *testing.T) {
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		InnerJoin("users", "orders.user_id = users.id").
+		Where(&sb.Where{Column: "users.id", Operator: "=", Value: "1"}).
+		Update(map[string]string{"orders.status": "processed"})
+
+	expected := "UPDATE `orders` SET `orders`.`status`=\"processed\"  INNER JOIN `users` ON orders.user_id = users.id WHERE `users`.`id` = \"1\";"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}
+
+func TestBuilderJoinNoJoins(t *testing.T) {
+	// Test that queries work normally without joins
+	sql := sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("orders").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+		Select([]string{"*"})
+
+	expected := "SELECT * FROM `orders` WHERE `status` = \"active\";"
+	if sql != expected {
+		t.Fatalf("Expected: %s but found: %s", expected, sql)
+	}
+}

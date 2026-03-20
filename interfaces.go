@@ -27,6 +27,21 @@ type BuilderInterface interface {
 	// DropIndexWithSchema removes an index from a specific schema (PostgreSQL only)
 	DropIndexWithSchema(indexName string, schema string) string
 
+	// Join adds a JOIN clause to the query
+	Join(joinType JoinType, table string, onCondition string) BuilderInterface
+
+	// JoinWithAlias adds a JOIN clause with table alias to the query
+	JoinWithAlias(joinType JoinType, table string, alias string, onCondition string) BuilderInterface
+
+	// LeftJoin adds a LEFT JOIN clause to the query
+	LeftJoin(table string, onCondition string) BuilderInterface
+
+	// RightJoin adds a RIGHT JOIN clause to the query
+	RightJoin(table string, onCondition string) BuilderInterface
+
+	// InnerJoin adds an INNER JOIN clause to the query
+	InnerJoin(table string, onCondition string) BuilderInterface
+
 	// Delete deletes a table
 	Delete() string
 

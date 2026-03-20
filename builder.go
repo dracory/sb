@@ -37,11 +37,32 @@ type TruncateOptions struct {
 	ResetIdentity bool // For MSSQL: resets identity column seed value after truncation
 }
 
+// JoinType represents the type of JOIN operation
+type JoinType string
+
+const (
+	JOIN_INNER JoinType = "INNER"
+	JOIN_LEFT  JoinType = "LEFT"
+	JOIN_RIGHT JoinType = "RIGHT"
+	JOIN_FULL  JoinType = "FULL"
+	JOIN_CROSS JoinType = "CROSS"
+)
+
+// Join represents a database JOIN operation
+type Join struct {
+	Type        JoinType
+	Table       string
+	Alias       string
+	OnCondition string
+	Columns     []string // Optional: for specific column selection
+}
+
 type Builder struct {
 	Dialect            string
 	sql                map[string]any
 	sqlColumns         []Column
 	sqlGroupBy         []GroupBy
+	sqlJoins           []Join
 	sqlLimit           int64
 	sqlOffset          int64
 	sqlOrderBy         []OrderBy
@@ -75,6 +96,7 @@ func NewBuilder(dialect string) *Builder {
 		sql:                map[string]any{},
 		sqlColumns:         []Column{},
 		sqlGroupBy:         []GroupBy{},
+		sqlJoins:           []Join{},
 		sqlLimit:           0,
 		sqlOffset:          0,
 		sqlOrderBy:         []OrderBy{},
@@ -306,6 +328,102 @@ func (b *Builder) DropIndexWithSchema(indexName string, schema string) string {
 		// Other dialects don't support schema-qualified index names
 		return b.DropIndex(indexName)
 	}
+}
+
+// Join adds a JOIN clause to the query.
+// The joinType parameter specifies the type of join (INNER, LEFT, RIGHT, FULL, CROSS).
+// The table parameter specifies the table to join.
+// The onCondition parameter specifies the join condition.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("orders").
+//	  Join(sb.JOIN_INNER, "users", "orders.user_id = users.id").
+//	  Select([]string{"orders.*", "users.name"})
+//	// Returns: "SELECT orders.*, users.name FROM orders INNER JOIN users ON orders.user_id = users.id;"
+func (b *Builder) Join(joinType JoinType, table string, onCondition string) BuilderInterface {
+	if onCondition == "" {
+		panic("In method Join() ON condition cannot be empty!")
+	}
+
+	join := Join{
+		Type:        joinType,
+		Table:       table,
+		OnCondition: onCondition,
+	}
+
+	b.sqlJoins = append(b.sqlJoins, join)
+	return b
+}
+
+// JoinWithAlias adds a JOIN clause with table alias to the query.
+// The joinType parameter specifies the type of join (INNER, LEFT, RIGHT, FULL, CROSS).
+// The table parameter specifies the table to join.
+// The alias parameter specifies the alias for the joined table.
+// The onCondition parameter specifies the join condition.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("orders").
+//	  JoinWithAlias(sb.JOIN_LEFT, "profiles", "p", "orders.user_id = p.user_id").
+//	  Select([]string{"orders.*", "p.avatar"})
+//	// Returns: "SELECT orders.*, p.avatar FROM orders LEFT JOIN profiles AS p ON orders.user_id = p.user_id;"
+func (b *Builder) JoinWithAlias(joinType JoinType, table string, alias string, onCondition string) BuilderInterface {
+	if onCondition == "" {
+		panic("In method JoinWithAlias() ON condition cannot be empty!")
+	}
+
+	join := Join{
+		Type:        joinType,
+		Table:       table,
+		Alias:       alias,
+		OnCondition: onCondition,
+	}
+
+	b.sqlJoins = append(b.sqlJoins, join)
+	return b
+}
+
+// LeftJoin adds a LEFT JOIN clause to the query.
+// The table parameter specifies the table to join.
+// The onCondition parameter specifies the join condition.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_SQLITE).Table("orders").
+//	  LeftJoin("users", "orders.user_id = users.id").
+//	  Select([]string{"orders.*", "users.name"})
+//	// Returns: "SELECT orders.*, users.name FROM orders LEFT JOIN users ON orders.user_id = users.id;"
+func (b *Builder) LeftJoin(table string, onCondition string) BuilderInterface {
+	return b.Join(JOIN_LEFT, table, onCondition)
+}
+
+// RightJoin adds a RIGHT JOIN clause to the query.
+// The table parameter specifies the table to join.
+// The onCondition parameter specifies the join condition.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MSSQL).Table("orders").
+//	  RightJoin("users", "orders.user_id = users.id").
+//	  Select([]string{"orders.*", "users.name"})
+//	// Returns: "SELECT orders.*, users.name FROM orders RIGHT JOIN users ON orders.user_id = users.id;"
+func (b *Builder) RightJoin(table string, onCondition string) BuilderInterface {
+	return b.Join(JOIN_RIGHT, table, onCondition)
+}
+
+// InnerJoin adds an INNER JOIN clause to the query.
+// The table parameter specifies the table to join.
+// The onCondition parameter specifies the join condition.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("orders").
+//	  InnerJoin("users", "orders.user_id = users.id").
+//	  Select([]string{"orders.*", "users.name"})
+//	// Returns: "SELECT orders.*, users.name FROM orders INNER JOIN users ON orders.user_id = users.id;"
+func (b *Builder) InnerJoin(table string, onCondition string) BuilderInterface {
+	return b.Join(JOIN_INNER, table, onCondition)
 }
 
 /**
@@ -594,7 +712,7 @@ func (b *Builder) Select(columns []string) string {
 		panic("In method Select() no table specified to select from!")
 	}
 
-	join := "" // TODO add support for joins
+	join := b.joinToSQL()
 
 	groupBy := ""
 	if len(b.sqlGroupBy) > 0 {
@@ -638,6 +756,8 @@ func (b *Builder) Select(columns []string) string {
 
 	if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + limit + offset + ";"
+	} else if b.Dialect == DIALECT_MSSQL {
+		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + ";"
 	}
 
 	return sql
@@ -775,7 +895,7 @@ func (b *Builder) Update(columnValues map[string]string) string {
 		panic("In method Update() no table specified to update!")
 	}
 
-	join := "" // TODO add support for joins
+	join := b.joinToSQL()
 
 	groupBy := ""
 	if len(b.sqlGroupBy) > 0 {
@@ -837,6 +957,29 @@ func (b *Builder) columnsToSQL(columns []Column) string {
 	}
 
 	return strings.Join(columnSQLs, ", ")
+}
+
+// joinToSQL converts the joins slice to SQL string
+func (b *Builder) joinToSQL() string {
+	if len(b.sqlJoins) == 0 {
+		return ""
+	}
+
+	var joins []string
+	for _, join := range b.sqlJoins {
+		tableExpr := b.quoteTable(join.Table)
+		if join.Alias != "" {
+			tableExpr += " AS " + b.quoteTable(join.Alias)
+		}
+
+		joinSQL := fmt.Sprintf(" %s JOIN %s ON %s",
+			string(join.Type),
+			tableExpr,
+			join.OnCondition)
+		joins = append(joins, joinSQL)
+	}
+
+	return " " + strings.Join(joins, " ")
 }
 
 func (b *Builder) groupByToSql(groupBys []GroupBy) string {
