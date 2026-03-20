@@ -6,7 +6,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -27,6 +26,8 @@ require (
 	github.com/dracory/uid v1.8.0
 	github.com/georgysavva/scany v1.2.3
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/lib/pq v1.10.9
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/samber/lo v1.52.0
 	github.com/spf13/cast v1.10.0
 	modernc.org/sqlite v1.40.1

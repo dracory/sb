@@ -25,6 +25,7 @@ jobs:
       POSTGRES_DATABASE: test
       POSTGRES_USER: test
       POSTGRES_PASS: test
+      GITHUB_ACTIONS: true
 
     steps:
     - uses: actions/checkout@v3
@@ -38,21 +39,16 @@ jobs:
       run: |
         mysql --version
         sudo apt-get install -y mysql-client
-    #     mysql --host 127.0.0.1 --port 33306 -utest -psecrettest -e "SHOW DATABASES"
+        mysql --host 127.0.0.1 --port ${{ env.MYSQL_PORT }} -u${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} -e "SHOW DATABASES;"
     
     - name: Install PostgreSQL client
       run: |
         sudo apt-get update
         sudo apt-get install --yes postgresql-client
 
-    # queries database with postgres client
-    # - name: Query database
-    #   run: psql -h postgres -p 55432 -d test -U test -c 'SELECT 1;'
-    #   env:
-    #     # postgress password is required; alternatively, you can run:
-    #     # `PGPASSWORD=postgres_password psql ...`
-    #     PGPASSWORD: test
-
+    - name: Verify PostgreSQL connection
+      run: |
+        PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;"
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -62,31 +58,47 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
+    - name: Run Unit Tests
       run: go test -v ./...
+
+    - name: Run Integration Tests - MySQL
+      run: |
+        echo "Testing MySQL integration with zero-panic error handling..."
+        go test -v -run "TestMySQLIntegration" ./...
+
+    - name: Run Integration Tests - PostgreSQL  
+      run: |
+        echo "Testing PostgreSQL integration with zero-panic error handling..."
+        go test -v -run "TestPostgreSQLIntegration" ./...
+
+    - name: Run Integration Tests - SQLite
+      run: |
+        echo "Testing SQLite integration with zero-panic error handling..."
+        go test -v -run "TestSQLiteIntegration" ./...
+
+    - name: Run Error Handling Integration Tests
+      run: |
+        echo "Testing error handling integration scenarios..."
+        go test -v -run "TestErrorHandlingIntegration" ./...
 
     services:
       # MySQL service
-      # mysql:
-      #   image: mysql:latest
-      #   env:
-      #     MYSQL_ROOT_PASSWORD: test
-      #     MYSQL_DATABASE: test
-      #     MYSQL_USER: test
-      #     MYSQL_PASSWORD: test
-      #   ports:
-      #     - "33306:3306"
-      #   options: >-
-      #     --health-cmd "mysqladmin ping -u test -p test"
-      #     --health-interval 20s
-      #     --health-timeout 15s
-      #     --health-retries 5
-      #   # volumes:
-      #   #   - ./mysql-data:/var/lib/mysql
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd mysqladmin ping -h localhost
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
 
       # PostgreSQL service
       postgres:
-        image: postgres:latest
+        image: postgres:15
         env:
           POSTGRES_PASSWORD: test
           POSTGRES_DB: test
@@ -98,5 +110,3 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        # volumes:
-        #   - ./postgres-data:/var/lib/postgresql/data
