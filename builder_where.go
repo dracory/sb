@@ -36,10 +36,14 @@ type Where struct {
 func (b *Builder) whereToSql(wheres []Where) (string, error) {
 	sql := []string{}
 	for _, where := range wheres {
-		// Validate subquery for nil case when operator indicates subquery usage
-		if where.Subquery == nil && (where.Operator == "IN" || where.Operator == "NOT IN" ||
-			where.Operator == "EXISTS" || where.Operator == "NOT EXISTS" ||
-			(where.Operator != "" && where.Column != "" && where.Value == "")) {
+		// Validate subquery usage - if operator indicates subquery usage but subquery is nil, that's an error
+		if (where.Operator == "IN" || where.Operator == "NOT IN" ||
+			where.Operator == "EXISTS" || where.Operator == "NOT EXISTS") && where.Subquery == nil {
+			return "", errors.New("subquery cannot be nil")
+		}
+
+		// If subquery is present, validate it
+		if where.Subquery != nil {
 			if err := b.validateSubqueryColumns(where); err != nil {
 				return "", err
 			}

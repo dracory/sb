@@ -5,6 +5,7 @@ import (
 	stdsql "database/sql"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/dracory/sb"
@@ -1741,6 +1742,62 @@ func TestSubqueryValidationWithNilSubquery(t *testing.T) {
 		t.Error("Expected error for nil subquery")
 	} else if err.Error() != "subquery cannot be nil" {
 		t.Errorf("Expected error message 'subquery cannot be nil', got '%s'", err.Error())
+	}
+}
+
+// TestWhereConditionWithEmptyValue ensures that WHERE conditions with empty values
+// work correctly and don't incorrectly trigger subquery validation.
+// This is a regression test for a bug where regular WHERE conditions with empty
+// values failed with "subquery cannot be nil" error.
+func TestWhereConditionWithEmptyValue(t *testing.T) {
+	dialects := []string{sb.DIALECT_MYSQL, sb.DIALECT_POSTGRES, sb.DIALECT_SQLITE, sb.DIALECT_MSSQL}
+
+	for _, dialect := range dialects {
+		t.Run(dialect, func(t *testing.T) {
+			// Create a WHERE condition with empty value that previously triggered the bug
+			whereCondition := sb.Where{
+				Column:   "name",
+				Operator: "=",
+				Value:    "", // Empty value should not trigger subquery validation
+				Type:     "AND",
+			}
+
+			query, args, err := sb.NewBuilder(dialect).
+				Table("users").
+				Where(&whereCondition).
+				Select([]string{"id", "name", "email"})
+
+			// Should NOT fail with "subquery cannot be nil" error
+			if err != nil {
+				t.Errorf("WHERE condition with empty value failed for dialect %s: %v", dialect, err)
+				return
+			}
+
+			if query == "" {
+				t.Errorf("Empty query returned for dialect %s", dialect)
+				return
+			}
+
+			if args == nil {
+				t.Errorf("Nil args returned for dialect %s", dialect)
+				return
+			}
+
+			// Verify the query contains the expected WHERE clause
+			expectedPattern := "WHERE `name` = ?"
+			switch dialect {
+			case sb.DIALECT_POSTGRES:
+				expectedPattern = "WHERE \"name\" = $1"
+			case sb.DIALECT_SQLITE:
+				expectedPattern = "WHERE \"name\" = ?"
+			case sb.DIALECT_MSSQL:
+				expectedPattern = "WHERE [name] = @p1"
+			}
+
+			if !strings.Contains(query, expectedPattern) {
+				t.Errorf("Query doesn't contain expected WHERE pattern for dialect %s. Expected: %s, Got: %s", dialect, expectedPattern, query)
+			}
+		})
 	}
 }
 
