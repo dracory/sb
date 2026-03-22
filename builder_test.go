@@ -2317,3 +2317,61 @@ func TestBuilderEnhancedIndexSupportMSSQL(t *testing.T) {
 		t.Fatalf("Expected:\n%s\nbut found:\n%s", expected, sql)
 	}
 }
+
+// TDD Test: WHERE clause SQL generation fixes
+func TestWhereClauseSQLOperators(t *testing.T) {
+	// Test that WHERE conditions generate proper SQL with operators
+	tests := []struct {
+		name     string
+		dialect  string
+		where    *sb.Where
+		expected string
+	}{
+		{
+			name:     "MySQL email equality",
+			dialect:  sb.DIALECT_MYSQL,
+			where:    &sb.Where{Column: "email", Operator: "=", Value: "test@example.com"},
+			expected: "WHERE `email` = ?;",
+		},
+		{
+			name:     "PostgreSQL email equality",
+			dialect:  sb.DIALECT_POSTGRES,
+			where:    &sb.Where{Column: "email", Operator: "=", Value: "test@example.com"},
+			expected: "WHERE \"email\" = $1;",
+		},
+		{
+			name:     "MySQL IS NULL",
+			dialect:  sb.DIALECT_MYSQL,
+			where:    &sb.Where{Column: "soft_deleted_at", Operator: "IS NULL"},
+			expected: "WHERE `soft_deleted_at` IS NULL;",
+		},
+		{
+			name:     "PostgreSQL IS NULL",
+			dialect:  sb.DIALECT_POSTGRES,
+			where:    &sb.Where{Column: "soft_deleted_at", Operator: "IS NULL"},
+			expected: "WHERE \"soft_deleted_at\" IS NULL;",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := sb.NewBuilder(tt.dialect).Table("users").Where(tt.where)
+			sql, _, err := builder.Select([]string{"id", "email", "name"})
+
+			if err != nil {
+				t.Fatal("Unexpected error:", err)
+			}
+
+			// Extract WHERE clause from the generated SQL
+			whereIndex := strings.Index(sql, "WHERE ")
+			if whereIndex == -1 {
+				t.Fatalf("No WHERE clause found in SQL: %s", sql)
+			}
+
+			whereClause := sql[whereIndex:]
+			if whereClause != tt.expected {
+				t.Fatalf("Expected WHERE clause:\n%s\nbut found:\n%s", tt.expected, whereClause)
+			}
+		})
+	}
+}

@@ -110,6 +110,14 @@ func (b *Builder) whereToSqlSingle(column, operator, value string) string {
 	}
 	columnQuoted := b.quoteColumn(column)
 
+	// Handle IS NULL and IS NOT NULL operators directly
+	if operator == "IS NULL" {
+		return columnQuoted + " IS NULL"
+	}
+	if operator == "IS NOT NULL" {
+		return columnQuoted + " IS NOT NULL"
+	}
+
 	// Use parameterized queries by default, unless interpolatedValues mode is enabled
 	var valueQuoted string
 	if b.interpolatedValues {
