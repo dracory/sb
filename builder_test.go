@@ -292,6 +292,44 @@ func TestMSSQLOffsetBug(t *testing.T) {
 	t.Logf("SQLite SQL (works correctly): %s", sql2)
 }
 
+func TestMSSQLOffsetWithoutOrderBy_ShouldFail(t *testing.T) {
+	// TDD TEST: MSSQL OFFSET requires ORDER BY - this should return an error
+	// MSSQL syntax: OFFSET ... ROWS requires an ORDER BY clause
+
+	_, _, err := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		Limit(10).
+		Offset(20).
+		Select([]string{"id", "name"})
+
+	// This SHOULD fail with validation error
+	if err == nil {
+		t.Errorf("❌ EXPECTED ERROR: MSSQL requires ORDER BY when using OFFSET, but got none")
+	} else if err.Error() != "ValidationError: MSSQL requires ORDER BY when using OFFSET" {
+		t.Errorf("❌ Expected 'ValidationError: MSSQL requires ORDER BY when using OFFSET', got: %v", err)
+	} else {
+		t.Logf("✅ TEST PASSES: Correctly returned error: %v", err)
+	}
+}
+
+func TestMSSQLOffsetOnlyWithoutOrderBy_ShouldFail(t *testing.T) {
+	// TDD TEST: MSSQL OFFSET (without LIMIT) also requires ORDER BY
+
+	_, _, err := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		Offset(20).
+		Select([]string{"id", "name"})
+
+	// This SHOULD fail with validation error
+	if err == nil {
+		t.Errorf("❌ EXPECTED ERROR: MSSQL requires ORDER BY when using OFFSET, but got none")
+	} else if err.Error() != "ValidationError: MSSQL requires ORDER BY when using OFFSET" {
+		t.Errorf("❌ Expected 'ValidationError: MSSQL requires ORDER BY when using OFFSET', got: %v", err)
+	} else {
+		t.Logf("✅ TEST PASSES: Correctly returned error: %v", err)
+	}
+}
+
 func TestBuilderTableCreateMysql(t *testing.T) {
 	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").

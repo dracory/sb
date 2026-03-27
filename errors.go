@@ -27,13 +27,14 @@ func (e *BuilderError) Unwrap() error {
 // Common error types
 var (
 	// Validation errors
-	ErrEmptyTableName     = &BuilderError{Type: "ValidationError", Message: "table name cannot be empty"}
-	ErrEmptyColumnName    = &BuilderError{Type: "ValidationError", Message: "column name cannot be empty"}
-	ErrEmptyIndexName     = &BuilderError{Type: "ValidationError", Message: "index name cannot be empty"}
-	ErrEmptyColumns       = &BuilderError{Type: "ValidationError", Message: "columns cannot be empty"}
-	ErrEmptyOnCondition   = &BuilderError{Type: "ValidationError", Message: "ON condition cannot be empty"}
-	ErrInvalidJoinType    = &BuilderError{Type: "ValidationError", Message: "invalid join type"}
-	ErrOffsetWithoutLimit = &BuilderError{Type: "ValidationError", Message: "SQLite requires LIMIT when using OFFSET"}
+	ErrEmptyTableName             = &BuilderError{Type: "ValidationError", Message: "table name cannot be empty"}
+	ErrEmptyColumnName            = &BuilderError{Type: "ValidationError", Message: "column name cannot be empty"}
+	ErrEmptyIndexName             = &BuilderError{Type: "ValidationError", Message: "index name cannot be empty"}
+	ErrEmptyColumns               = &BuilderError{Type: "ValidationError", Message: "columns cannot be empty"}
+	ErrEmptyOnCondition           = &BuilderError{Type: "ValidationError", Message: "ON condition cannot be empty"}
+	ErrInvalidJoinType            = &BuilderError{Type: "ValidationError", Message: "invalid join type"}
+	ErrOffsetWithoutLimit         = &BuilderError{Type: "ValidationError", Message: "SQLite requires LIMIT when using OFFSET"}
+	ErrMSSQLOffsetRequiresOrderBy = &BuilderError{Type: "ValidationError", Message: "MSSQL requires ORDER BY when using OFFSET"}
 
 	// Configuration errors
 	ErrInvalidDialect = &BuilderError{Type: "ConfigurationError", Message: "invalid database dialect"}

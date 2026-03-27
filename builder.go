@@ -1213,6 +1213,11 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 	if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + limit + offset + ";"
 	} else if b.Dialect == DIALECT_MSSQL {
+		// MSSQL OFFSET requires ORDER BY clause
+		if b.sqlOffset > 0 && len(b.sqlOrderBy) == 0 {
+			return "", nil, ErrMSSQLOffsetRequiresOrderBy
+		}
+
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy
 
 		// MSSQL uses OFFSET/FETCH syntax instead of LIMIT/OFFSET
@@ -1223,7 +1228,7 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 			}
 		} else if b.sqlLimit > 0 {
 			// If only LIMIT is specified (no OFFSET), use TOP clause
-			sql = "SELECT TOP " + strconv.FormatInt(b.sqlLimit, 10) + " " + strings.TrimPrefix(sql, "SELECT ")
+			sql = "SELECT TOP " + strconv.FormatInt(b.sqlLimit, 10) + " " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy
 		}
 
 		sql += ";"
@@ -1752,28 +1757,8 @@ func (b *Builder) groupByToSql(groupBys []GroupBy) string {
 func (b *Builder) orderByToSql(orderBys []OrderBy) string {
 	sql := []string{}
 
-	if b.Dialect == DIALECT_MYSQL {
-		for _, orderBy := range orderBys {
-			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
-		}
-	}
-
-	if b.Dialect == DIALECT_POSTGRES {
-		for _, orderBy := range orderBys {
-			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
-		}
-	}
-
-	if b.Dialect == DIALECT_SQLITE {
-		for _, orderBy := range orderBys {
-			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
-		}
-	}
-
-	if b.Dialect == DIALECT_MSSQL {
-		for _, orderBy := range orderBys {
-			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
-		}
+	for _, orderBy := range orderBys {
+		sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
 	}
 
 	if len(sql) > 0 {
