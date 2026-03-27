@@ -1188,6 +1188,10 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 
 	offset := ""
 	if b.sqlOffset > 0 {
+		// SQLite requires LIMIT when using OFFSET
+		if b.Dialect == DIALECT_SQLITE && b.sqlLimit <= 0 {
+			return "", nil, ErrOffsetWithoutLimit
+		}
 		offset = " OFFSET " + strconv.FormatInt(b.sqlOffset, 10)
 	}
 
@@ -1209,7 +1213,20 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 	if b.Dialect == DIALECT_MYSQL || b.Dialect == DIALECT_POSTGRES || b.Dialect == DIALECT_SQLITE {
 		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + limit + offset + ";"
 	} else if b.Dialect == DIALECT_MSSQL {
-		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy + ";"
+		sql = "SELECT " + columnsStr + " FROM " + b.quoteTable(b.sqlTableName) + join + where + groupBy + orderBy
+
+		// MSSQL uses OFFSET/FETCH syntax instead of LIMIT/OFFSET
+		if b.sqlOffset > 0 {
+			sql += " OFFSET " + strconv.FormatInt(b.sqlOffset, 10) + " ROWS"
+			if b.sqlLimit > 0 {
+				sql += " FETCH NEXT " + strconv.FormatInt(b.sqlLimit, 10) + " ROWS ONLY"
+			}
+		} else if b.sqlLimit > 0 {
+			// If only LIMIT is specified (no OFFSET), use TOP clause
+			sql = "SELECT TOP " + strconv.FormatInt(b.sqlLimit, 10) + " " + strings.TrimPrefix(sql, "SELECT ")
+		}
+
+		sql += ";"
 	}
 
 	return sql, b.params, nil
@@ -1225,6 +1242,24 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
  * @return int 0 or 1, on success, false, otherwise
  * @access public
  */
+
+// Insert inserts a row into a table.
+//
+// NOTE: This method inserts a single record. For bulk inserts, be aware of database parameter limits:
+//   - SQLite: 999 parameters per statement (e.g., 124 records with 8 columns each)
+//   - MySQL: ~65,535 parameters (limited by max_allowed_packet setting)
+//   - PostgreSQL: ~32,767 parameters for prepared statements
+//   - MSSQL: 2,100 parameters
+//
+// For large bulk inserts, split data into batches to avoid "too many SQL variables" errors.
+//
+// Example:
+//
+//	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+//	  Table("users").
+//	  Insert(map[string]string{"name": "John", "email": "john@example.com"})
+//
+// Returns the SQL statement and parameters for execution.
 func (b *Builder) Insert(columnValuesMap map[string]string) (string, []interface{}, error) {
 	// Reset parameters for new query
 	b.resetParams()
@@ -1730,6 +1765,12 @@ func (b *Builder) orderByToSql(orderBys []OrderBy) string {
 	}
 
 	if b.Dialect == DIALECT_SQLITE {
+		for _, orderBy := range orderBys {
+			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
+		}
+	}
+
+	if b.Dialect == DIALECT_MSSQL {
 		for _, orderBy := range orderBys {
 			sql = append(sql, b.quoteColumn(orderBy.Column)+" "+orderBy.Direction)
 		}

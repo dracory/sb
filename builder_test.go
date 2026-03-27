@@ -102,6 +102,196 @@ func TestBuilderTableSelectFull(t *testing.T) {
 	}
 }
 
+func TestSQLiteOffsetWithoutLimit_ShouldFail(t *testing.T) {
+	// This test should FAIL because SQLite doesn't support OFFSET without LIMIT
+	// After fix: Should return a proper error instead of invalid SQL
+
+	sql, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Offset(20).
+		Select([]string{"*"})
+
+	// After fix: Should return ErrOffsetWithoutLimit instead of invalid SQL
+	if err == nil {
+		t.Errorf("❌ Expected error for OFFSET without LIMIT, but got none")
+		t.Errorf("Generated SQL: %s", sql)
+	} else if err.Error() != "ValidationError: SQLite requires LIMIT when using OFFSET" {
+		t.Errorf("❌ Expected 'ValidationError: SQLite requires LIMIT when using OFFSET', got: %v", err)
+	} else {
+		t.Logf("✅ TEST PASSES: Correctly returned error: %v", err)
+	}
+}
+
+func TestMSSQLOffsetMissing_ShouldFail(t *testing.T) {
+	// This test should PASS after fix - MSSQL should now properly support OFFSET
+	// After fix: Should generate proper OFFSET/FETCH syntax
+
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		OrderBy("id", "ASC").
+		Limit(10).
+		Offset(20).
+		Select([]string{"id", "name"})
+
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+
+	// After fix: Should generate proper MSSQL OFFSET/FETCH syntax
+	expected := "SELECT [id], [name] FROM [users] ORDER BY [id] ASC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY;"
+
+	t.Logf("Generated SQL: %s", sql)
+	t.Logf("Expected SQL: %s", expected)
+
+	if sql == expected {
+		t.Logf("✅ TEST PASSES: MSSQL now generates correct OFFSET/FETCH syntax")
+	} else {
+		// Check if it's just missing ORDER BY
+		if sql == "SELECT [id], [name] FROM [users] OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY;" {
+			t.Logf("⚠️  Generated SQL is missing ORDER BY clause - this is a bug to fix")
+			t.Errorf("Expected ORDER BY in MSSQL query")
+		} else {
+			t.Errorf("❌ Expected MSSQL OFFSET/FETCH syntax")
+			t.Errorf("Expected: %s", expected)
+			t.Errorf("Generated: %s", sql)
+		}
+	}
+}
+
+func TestSQLiteOffsetSpecific(t *testing.T) {
+	// Test various SQLite OFFSET scenarios to identify specific issues
+
+	// Test 1: Basic OFFSET with LIMIT
+	sql1, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Limit(10).
+		Offset(20).
+		Select([]string{"*"})
+
+	if err != nil {
+		t.Fatalf("Error in basic OFFSET test: %v", err)
+	}
+
+	expected1 := `SELECT * FROM "users" LIMIT 10 OFFSET 20;`
+	if sql1 != expected1 {
+		t.Errorf("Basic OFFSET test failed.\nExpected: %s\nGot: %s", expected1, sql1)
+	} else {
+		t.Logf("✅ Basic OFFSET works: %s", sql1)
+	}
+
+	// Test 2: OFFSET without LIMIT (this should now return an error)
+	_, _, err = sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Offset(20).
+		Select([]string{"*"})
+
+	// After fix: Should return validation error instead of invalid SQL
+	if err != nil && err.Error() == "ValidationError: SQLite requires LIMIT when using OFFSET" {
+		t.Logf("✅ OFFSET without LIMIT correctly returns error: %v", err)
+	} else {
+		t.Errorf("Expected ValidationError for OFFSET without LIMIT, got: %v", err)
+	}
+
+	// Test 3: OFFSET with WHERE clause (using interpolated values)
+	sql3, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+		Limit(5).
+		Offset(10).
+		WithInterpolatedValues().
+		Select([]string{"name"})
+
+	if err != nil {
+		t.Fatalf("Error in OFFSET with WHERE test: %v", err)
+	}
+
+	expected3 := `SELECT "name" FROM "users" WHERE "status" = 'active' LIMIT 5 OFFSET 10;`
+	if sql3 != expected3 {
+		t.Errorf("OFFSET with WHERE failed.\nExpected: %s\nGot: %s", expected3, sql3)
+	} else {
+		t.Logf("✅ OFFSET with WHERE works: %s", sql3)
+	}
+
+	// Test 3b: OFFSET with WHERE clause (without interpolation - to see the raw SQL)
+	sql3b, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
+		Limit(5).
+		Offset(10).
+		Select([]string{"name"})
+
+	if err != nil {
+		t.Fatalf("Error in OFFSET with WHERE test (no interpolation): %v", err)
+	}
+
+	t.Logf("Raw SQL (no interpolation): %s", sql3b)
+	t.Logf("Parameters: %v", params)
+
+	// Test 4: OFFSET with ORDER BY
+	sql4, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		OrderBy("created_at", "DESC").
+		Limit(15).
+		Offset(30).
+		Select([]string{"id", "name"})
+
+	if err != nil {
+		t.Fatalf("Error in OFFSET with ORDER BY test: %v", err)
+	}
+
+	expected4 := `SELECT "id", "name" FROM "users" ORDER BY "created_at" DESC LIMIT 15 OFFSET 30;`
+	if sql4 != expected4 {
+		t.Errorf("OFFSET with ORDER BY failed.\nExpected: %s\nGot: %s", expected4, sql4)
+	} else {
+		t.Logf("✅ OFFSET with ORDER BY works: %s", sql4)
+	}
+}
+
+func TestMSSQLOffsetBug(t *testing.T) {
+	// Test MSSQL with OFFSET - this should demonstrate the bug
+	// This should generate SQL but might cause the OFFSET syntax error
+	sql, _, err := sb.NewBuilder(sb.DIALECT_MSSQL).
+		Table("users").
+		OrderBy("id", "ASC").
+		Limit(10).
+		Offset(20).
+		Select([]string{"id", "name"})
+
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+
+	// The issue: MSSQL doesn't include LIMIT/OFFSET in the generated SQL
+	// but the variables are still calculated, potentially causing issues
+	expected := "SELECT [id], [name] FROM [users] ORDER BY [id] ASC;"
+
+	if sql != expected {
+		t.Logf("Generated SQL: %s", sql)
+		t.Logf("Expected SQL: %s", expected)
+		t.Logf("Notice: MSSQL ignores LIMIT and OFFSET clauses!")
+	}
+
+	// Test with SQLite to see the difference
+	sql2, _, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+		Table("users").
+		OrderBy("id", "ASC").
+		Limit(10).
+		Offset(20).
+		Select([]string{"id", "name"})
+
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+
+	expected2 := `SELECT "id", "name" FROM "users" ORDER BY "id" ASC LIMIT 10 OFFSET 20;`
+
+	if sql2 != expected2 {
+		t.Fatalf("SQLite SQL mismatch.\nExpected: %s\nGot: %s", expected2, sql2)
+	}
+
+	t.Logf("SQLite SQL (works correctly): %s", sql2)
+}
+
 func TestBuilderTableCreateMysql(t *testing.T) {
 	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
