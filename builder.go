@@ -1056,27 +1056,17 @@ func (b *Builder) TableColumnChange(tableName string, column Column) (sqlString 
 
 // TableColumnDrop drops a column from the table
 func (b *Builder) TableColumnDrop(tableName, columnName string) (sqlString string, err error) {
-	if b.Dialect == DIALECT_MSSQL {
-		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
-		return sqlString, nil
+	if tableName == "" {
+		return "", ErrEmptyTableName
+	}
+	if columnName == "" {
+		return "", ErrEmptyColumnName
 	}
 
-	if b.Dialect == DIALECT_SQLITE {
-		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
-		return sqlString, nil
-	}
-
-	if b.Dialect == DIALECT_MYSQL {
-		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
-		return sqlString, nil
-	}
-
-	if b.Dialect == DIALECT_POSTGRES {
-		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
-		return sqlString, nil
-	}
-
-	return "", errors.New("dropping a column is not supported for driver " + b.Dialect + "")
+	// All dialects use the same DROP COLUMN syntax
+	// Dialect-specific quoting is handled by quoteTable/quoteColumn
+	sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
+	return sqlString, nil
 }
 
 // TableColumnExists checks if a column exists in a table for various database types
@@ -1107,27 +1097,31 @@ func (b *Builder) TableColumnExists(tableName, columnName string) (sql string, p
 }
 
 func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName string) (sql string, err error) {
+	if tableName == "" {
+		return "", ErrEmptyTableName
+	}
+	if oldColumnName == "" {
+		return "", ErrEmptyColumnName
+	}
+	if newColumnName == "" {
+		return "", NewValidationError("new column name cannot be empty")
+	}
+
 	if b.Dialect == DIALECT_MSSQL {
-		sql = "EXEC sp_rename " + b.quoteTable(tableName) + "." + b.quoteTable(oldColumnName) + ", " + b.quoteTable(newColumnName) + ", 'COLUMN';"
+		// MSSQL sp_rename requires the object name as a string literal in single quotes
+		// We need to escape single quotes in the identifiers and wrap in single quotes
+		// Format: EXEC sp_rename 'table.column', 'new_column', 'COLUMN';
+		quotedTable := strings.ReplaceAll(tableName, "'", "''")
+		quotedOld := strings.ReplaceAll(oldColumnName, "'", "''")
+		quotedNew := strings.ReplaceAll(newColumnName, "'", "''")
+		sql = "EXEC sp_rename '" + quotedTable + "." + quotedOld + "', '" + quotedNew + "', 'COLUMN';"
 		return sql, nil
 	}
 
-	if b.Dialect == DIALECT_SQLITE {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " RENAME COLUMN " + b.quoteTable(oldColumnName) + " TO " + b.quoteTable(newColumnName) + ";"
-		return sql, nil
-	}
-
-	if b.Dialect == DIALECT_MYSQL {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " RENAME COLUMN " + b.quoteTable(oldColumnName) + " TO " + b.quoteTable(newColumnName) + ";"
-		return sql, nil
-	}
-
-	if b.Dialect == DIALECT_POSTGRES {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " RENAME COLUMN " + b.quoteTable(oldColumnName) + " TO " + b.quoteTable(newColumnName) + ";"
-		return sql, nil
-	}
-
-	return "", errors.New("renaming a column is not supported for driver " + b.Dialect + "")
+	// MySQL, PostgreSQL, and SQLite all use the same RENAME COLUMN syntax
+	// Dialect-specific quoting is handled by quoteTable/quoteColumn
+	sql = "ALTER TABLE " + b.quoteTable(tableName) + " RENAME COLUMN " + b.quoteColumn(oldColumnName) + " TO " + b.quoteColumn(newColumnName) + ";"
+	return sql, nil
 }
 
 /** The <b>select</b> method selects rows from a table, based on criteria.
@@ -1780,6 +1774,7 @@ func (b *Builder) quoteColumn(columnName string) string {
 
 		if strings.Contains(columnPart, "(") {
 			columnQuoted = append(columnQuoted, columnPart)
+			continue
 		}
 
 		columnQuoted = append(columnQuoted, b.quote(columnPart, "column"))

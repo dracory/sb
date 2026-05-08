@@ -9,14 +9,14 @@ import (
 )
 
 // TableColumnExists checks if a column exists in a table for various database types.
-func TableColumnExists(ctx database.QueryableContext, tableName, columnName string) (exists bool, err error) {
+func TableColumnExists(ctx database.QueryableContext, tableName string, columnName string) (bool, error) {
 	db := ctx.Queryable()
 	if db == nil {
-		return false, errors.New("queryable cannot be nil")
+		return false, ErrNilQueryable
 	}
 
 	if tableName == "" || columnName == "" {
-		return false, errors.New("table name and column name cannot be empty")
+		return false, NewValidationError("table name and column name cannot be empty")
 	}
 
 	databaseType := database.DatabaseType(db)
@@ -28,6 +28,7 @@ func TableColumnExists(ctx database.QueryableContext, tableName, columnName stri
 		return false, fmt.Errorf("failed to build query: %w", err)
 	}
 
+	var exists bool
 	err = db.QueryRowContext(ctx, sqlString, sqlParams...).Scan(&exists)
 
 	if err != nil {

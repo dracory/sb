@@ -39,6 +39,7 @@ var (
 	// Configuration errors
 	ErrInvalidDialect = &BuilderError{Type: "ConfigurationError", Message: "invalid database dialect"}
 	ErrMissingTable   = &BuilderError{Type: "ValidationError", Message: "no table specified"}
+	ErrNilQueryable   = &BuilderError{Type: "ArgumentError", Message: "queryable cannot be nil"}
 
 	// Subquery errors
 	ErrNilSubquery     = &BuilderError{Type: "ArgumentError", Message: "subquery cannot be nil"}

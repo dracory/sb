@@ -2,6 +2,7 @@ package sb_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/dracory/database"
@@ -9,6 +10,12 @@ import (
 )
 
 func TestTableColumnExistsMySQL(t *testing.T) {
+	// Skip if not in GitHub Actions
+	if os.Getenv("GITHUB_ACTIONS") != "true" {
+		t.Skip("MySQL integration tests only run in GitHub Actions")
+		return
+	}
+
 	columns := _TestTableColumns_columns()
 
 	db, err := initMySQLWithTable("test_table_columns", columns)
