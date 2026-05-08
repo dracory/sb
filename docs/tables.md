@@ -118,6 +118,82 @@ type TruncateOptions struct {
 }
 ```
 
+## DROP COLUMN
+
+Remove columns from an existing table.
+
+### Builder Method (SQL Generation)
+
+```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableColumnDrop("users", "temp_column")
+// Result: ALTER TABLE `users` DROP COLUMN `temp_column`;
+```
+
+### Standalone Function (Execution)
+
+```go
+import "github.com/dracory/database"
+
+// Drop column directly using database context
+err := sb.TableColumnDrop(database.Context(ctx, db), "users", "temp_column")
+if err != nil {
+    log.Fatal("Error dropping column:", err)
+}
+```
+
+### Drop Column If Exists
+
+```go
+// Safe drop - no error if column doesn't exist
+err := sb.TableColumnDropIfExists(database.Context(ctx, db), "users", "temp_column")
+if err != nil {
+    log.Fatal("Error dropping column:", err)
+}
+```
+
+### Database-Specific SQL
+
+```sql
+-- MySQL: ALTER TABLE `users` DROP COLUMN `temp_column`;
+-- PostgreSQL: ALTER TABLE "users" DROP COLUMN "temp_column";
+-- SQLite: ALTER TABLE "users" DROP COLUMN "temp_column";
+-- MSSQL: ALTER TABLE [users] DROP COLUMN [temp_column];
+```
+
+## RENAME COLUMN
+
+Rename columns in an existing table.
+
+### Builder Method (SQL Generation)
+
+```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableColumnRename("users", "email", "new_email")
+// Result: ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;
+```
+
+### Standalone Function (Execution)
+
+```go
+import "github.com/dracory/database"
+
+// Rename column directly using database context
+err := sb.TableColumnRename(database.Context(ctx, db), "users", "email", "new_email")
+if err != nil {
+    log.Fatal("Error renaming column:", err)
+}
+```
+
+### Database-Specific SQL
+
+```sql
+-- MySQL: ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;
+-- PostgreSQL: ALTER TABLE "users" RENAME COLUMN "email" TO "new_email";
+-- SQLite: ALTER TABLE "users" RENAME COLUMN "email" TO "new_email";
+-- MSSQL: EXEC sp_rename [users].[email], [new_email], 'COLUMN';
+```
+
 ## Table Existence Check
 
 Check if a table exists in the database.
