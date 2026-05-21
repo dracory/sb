@@ -1006,27 +1006,26 @@ func (b *Builder) TableRename(oldTableName, newTableName string) (sql string, er
 
 // TableColumnAdd adds a column to the table
 func (b *Builder) TableColumnAdd(tableName string, column Column) (sql string, err error) {
-	if b.Dialect == DIALECT_MSSQL {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " ADD " + b.columnsToSQL([]Column{column}) + ";"
-		return sql, nil
+	if tableName == "" {
+		return "", ErrEmptyTableName
+	}
+	if column.Name == "" {
+		return "", ErrEmptyColumnName
+	}
+	if column.Type == "" {
+		return "", NewValidationError("column type is required")
 	}
 
+	sql = "ALTER TABLE " + b.quoteTable(tableName) + " ADD "
+
+	// SQLite requires COLUMN keyword
 	if b.Dialect == DIALECT_SQLITE {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " ADD COLUMN " + b.columnsToSQL([]Column{column}) + ";"
-		return sql, nil
+		sql += "COLUMN "
 	}
 
-	if b.Dialect == DIALECT_MYSQL {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " ADD " + b.columnsToSQL([]Column{column}) + ";"
-		return sql, nil
-	}
+	sql += b.columnsToSQL([]Column{column}) + ";"
 
-	if b.Dialect == DIALECT_POSTGRES {
-		sql = "ALTER TABLE " + b.quoteTable(tableName) + " ADD " + b.columnsToSQL([]Column{column}) + ";"
-		return sql, nil
-	}
-
-	return "", errors.New("adding a column is not supported for driver " + b.Dialect + "")
+	return sql, nil
 }
 
 // TableColumnChange changes a column in the table
