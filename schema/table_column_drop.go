@@ -15,7 +15,7 @@ func TableColumnDrop(ctx database.QueryableContext, tableName string, columnName
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	sqlStr, err := sb.NewBuilder(databaseType).TableColumnDrop(tableName, columnName)
+	sqlStr, err := sb.NewBuilder(databaseType).Table(tableName).ColumnDrop(columnName)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func TableColumnDropIfExists(ctx database.QueryableContext, tableName string, co
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	sqlStr, err := sb.NewBuilder(databaseType).TableColumnDrop(tableName, columnName)
+	sqlStr, err := sb.NewBuilder(databaseType).Table(tableName).ColumnDrop(columnName)
 	if err != nil {
 		return err
 	}

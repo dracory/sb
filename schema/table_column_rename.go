@@ -13,7 +13,7 @@ func TableColumnRename(ctx database.QueryableContext, tableName string, oldColum
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	sqlStr, err := sb.NewBuilder(databaseType).TableColumnRename(tableName, oldColumnName, newColumnName)
+	sqlStr, err := sb.NewBuilder(databaseType).Table(tableName).ColumnRename(oldColumnName, newColumnName)
 	if err != nil {
 		return err
 	}

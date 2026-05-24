@@ -184,23 +184,6 @@ func (b *Builder) Column(column Column) BuilderInterface {
 	return b
 }
 
-// addError adds an error to the error collection
-func (b *Builder) addError(err error) {
-	if err != nil {
-		b.sqlErrors = append(b.sqlErrors, err)
-	}
-}
-
-// hasErrors returns true if there are collected errors
-func (b *Builder) hasErrors() bool {
-	return len(b.sqlErrors) > 0
-}
-
-// getErrors returns all collected errors
-func (b *Builder) getErrors() []error {
-	return b.sqlErrors
-}
-
 // validateAndReturnError checks for collected errors and returns them as a single error
 func (b *Builder) validateAndReturnError() error {
 	if len(b.sqlErrors) == 0 {
@@ -982,7 +965,47 @@ func (b *Builder) OrderBy(columnName, direction string) BuilderInterface {
 	return b
 }
 
-// Rename renames a table or a view
+// Rename renames a table or a view using the table from the Table() method.
+// Example:
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Rename("new_users")
+//	// Returns: ("ALTER TABLE `users` RENAME `new_users`;", nil)
+func (b *Builder) Rename(newTableName string) (sql string, err error) {
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if newTableName == "" {
+		return "", NewValidationError("new table name cannot be empty")
+	}
+
+	if b.Dialect == DIALECT_MSSQL {
+		// MSSQL sp_rename requires the object name as a string literal in single quotes
+		quotedOld := strings.ReplaceAll(b.sqlTableName, "'", "''")
+		quotedNew := strings.ReplaceAll(newTableName, "'", "''")
+		sql = "EXEC sp_rename '" + quotedOld + "', '" + quotedNew + "', 'OBJECT';"
+		return sql, nil
+	}
+
+	if b.Dialect == DIALECT_SQLITE {
+		sql = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " RENAME TO " + b.quoteTable(newTableName) + ";"
+		return sql, nil
+	}
+
+	if b.Dialect == DIALECT_MYSQL {
+		sql = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " RENAME " + b.quoteTable(newTableName) + ";"
+		return sql, nil
+	}
+
+	if b.Dialect == DIALECT_POSTGRES {
+		sql = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " RENAME TO " + b.quoteTable(newTableName) + ";"
+		return sql, nil
+	}
+
+	return "", errors.New("renaming a table is not supported for driver " + b.Dialect + "")
+}
+
+// TableRename renames a table
+// Deprecated: Use Rename instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 func (b *Builder) TableRename(oldTableName, newTableName string) (sql string, err error) {
 	if b.Dialect == DIALECT_MSSQL {
 		sql = "EXEC sp_rename " + b.quoteTable(oldTableName) + ", " + b.quoteTable(newTableName) + ", 'OBJECT';"
@@ -1008,6 +1031,7 @@ func (b *Builder) TableRename(oldTableName, newTableName string) (sql string, er
 }
 
 // TableColumnAdd adds a column to the table
+// Deprecated: Use ColumnAdd instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 func (b *Builder) TableColumnAdd(tableName string, column Column) (sql string, err error) {
 	if tableName == "" {
 		return "", ErrEmptyTableName
@@ -1031,7 +1055,47 @@ func (b *Builder) TableColumnAdd(tableName string, column Column) (sql string, e
 	return sql, nil
 }
 
+// ColumnChange changes a column in the table using the table from the Table() method.
+// Example:
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnChange(sb.Column{Name: "email", Type: sb.COLUMN_TYPE_STRING, Length: 255})
+//	// Returns: ("ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255);", nil)
+func (b *Builder) ColumnChange(column Column) (sqlString string, err error) {
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if column.Name == "" {
+		return "", ErrEmptyColumnName
+	}
+	if column.Type == "" {
+		return "", NewValidationError("column type is required")
+	}
+
+	if b.Dialect == DIALECT_MSSQL {
+		sqlString = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " ALTER COLUMN " + b.columnsToSQL([]Column{column}) + ";"
+		return sqlString, nil
+	}
+
+	if b.Dialect == DIALECT_SQLITE {
+		sqlString = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " ALTER COLUMN " + b.columnsToSQL([]Column{column}) + ";"
+		return sqlString, nil
+	}
+
+	if b.Dialect == DIALECT_MYSQL {
+		sqlString = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " MODIFY COLUMN " + b.columnsToSQL([]Column{column}) + ";"
+		return sqlString, nil
+	}
+
+	if b.Dialect == DIALECT_POSTGRES {
+		sqlString = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " ALTER COLUMN " + b.columnsToSQL([]Column{column}) + ";"
+		return sqlString, nil
+	}
+
+	return "", errors.New("modifying a column is not supported for driver " + b.Dialect + "")
+}
+
 // TableColumnChange changes a column in the table
+// Deprecated: Use ColumnChange instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 func (b *Builder) TableColumnChange(tableName string, column Column) (sqlString string, err error) {
 	if b.Dialect == DIALECT_MSSQL {
 		sqlString = "ALTER TABLE " + b.quoteTable(tableName) + " ALTER COLUMN " + b.columnsToSQL([]Column{column}) + ";"
@@ -1057,6 +1121,7 @@ func (b *Builder) TableColumnChange(tableName string, column Column) (sqlString 
 }
 
 // TableColumnDrop drops a column from the table
+// Deprecated: Use ColumnDrop instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 func (b *Builder) TableColumnDrop(tableName, columnName string) (sqlString string, err error) {
 	if tableName == "" {
 		return "", ErrEmptyTableName
@@ -1071,6 +1136,8 @@ func (b *Builder) TableColumnDrop(tableName, columnName string) (sqlString strin
 	return sqlString, nil
 }
 
+// TableColumnRename renames a column in a table
+// Deprecated: Use ColumnRename instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName string) (sql string, err error) {
 	if tableName == "" {
 		return "", ErrEmptyTableName
@@ -1096,6 +1163,119 @@ func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName stri
 	// MySQL, PostgreSQL, and SQLite all use the same RENAME COLUMN syntax
 	// Dialect-specific quoting is handled by quoteTable/quoteColumn
 	sql = "ALTER TABLE " + b.quoteTable(tableName) + " RENAME COLUMN " + b.quoteColumn(oldColumnName) + " TO " + b.quoteColumn(newColumnName) + ";"
+	return sql, nil
+}
+
+// ColumnExists returns the SQL query and parameters for checking if a column exists in a table.
+// The method generates database-specific SQL:
+//   - MySQL: SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?
+//   - PostgreSQL: SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)
+//   - SQLite: SELECT 1 FROM pragma_table_info(?) WHERE name = ?
+//   - MSSQL: SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @p1 AND COLUMN_NAME = @p2
+//
+// Example:
+//
+//	sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnExists("email")
+//	// Returns: ("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?", []interface{}{"users", "email"}, nil)
+func (b *Builder) ColumnExists(columnName string) (string, []interface{}, error) {
+	if b.sqlTableName == "" {
+		return "", nil, ErrMissingTable
+	}
+	if columnName == "" {
+		return "", nil, ErrEmptyColumnName
+	}
+
+	switch b.Dialect {
+	case DIALECT_MYSQL:
+		return "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?", []interface{}{b.sqlTableName, columnName}, nil
+	case DIALECT_POSTGRES:
+		return "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)", []interface{}{b.sqlTableName, columnName}, nil
+	case DIALECT_SQLITE:
+		return "SELECT 1 FROM pragma_table_info(?) WHERE name = ?", []interface{}{b.sqlTableName, columnName}, nil
+	case DIALECT_MSSQL:
+		return "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @p1 AND COLUMN_NAME = @p2", []interface{}{b.sqlTableName, columnName}, nil
+	default:
+		return "", nil, fmt.Errorf("database type '%s' not supported", b.Dialect)
+	}
+}
+
+// ColumnAdd adds a column to the table using the table from the Table() method.
+// Example:
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnAdd(sb.Column{Name: "phone", Type: sb.COLUMN_TYPE_STRING})
+//	// Returns: ("ALTER TABLE `users` ADD `phone` VARCHAR(255);", nil)
+func (b *Builder) ColumnAdd(column Column) (sql string, err error) {
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if column.Name == "" {
+		return "", ErrEmptyColumnName
+	}
+	if column.Type == "" {
+		return "", NewValidationError("column type is required")
+	}
+
+	sql = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " ADD "
+
+	// SQLite requires COLUMN keyword
+	if b.Dialect == DIALECT_SQLITE {
+		sql += "COLUMN "
+	}
+
+	sql += b.columnsToSQL([]Column{column}) + ";"
+
+	return sql, nil
+}
+
+// ColumnDrop drops a column from the table using the table from the Table() method.
+// Example:
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnDrop("temp_column")
+//	// Returns: ("ALTER TABLE `users` DROP COLUMN `temp_column`;", nil)
+func (b *Builder) ColumnDrop(columnName string) (sqlString string, err error) {
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if columnName == "" {
+		return "", ErrEmptyColumnName
+	}
+
+	// All dialects use the same DROP COLUMN syntax
+	// Dialect-specific quoting is handled by quoteTable/quoteColumn
+	sqlString = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " DROP COLUMN " + b.quoteColumn(columnName) + ";"
+	return sqlString, nil
+}
+
+// ColumnRename renames a column in a table using the table from the Table() method.
+// Example:
+//
+//	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnRename("email", "new_email")
+//	// Returns: ("ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;", nil)
+func (b *Builder) ColumnRename(oldColumnName, newColumnName string) (sql string, err error) {
+	if b.sqlTableName == "" {
+		return "", ErrMissingTable
+	}
+	if oldColumnName == "" {
+		return "", ErrEmptyColumnName
+	}
+	if newColumnName == "" {
+		return "", NewValidationError("new column name cannot be empty")
+	}
+
+	if b.Dialect == DIALECT_MSSQL {
+		// MSSQL sp_rename requires the object name as a string literal in single quotes
+		// We need to escape single quotes in the identifiers and wrap in single quotes
+		// Format: EXEC sp_rename 'table.column', 'new_column', 'COLUMN';
+		quotedTable := strings.ReplaceAll(b.sqlTableName, "'", "''")
+		quotedOld := strings.ReplaceAll(oldColumnName, "'", "''")
+		quotedNew := strings.ReplaceAll(newColumnName, "'", "''")
+		sql = "EXEC sp_rename '" + quotedTable + "." + quotedOld + "', '" + quotedNew + "', 'COLUMN';"
+		return sql, nil
+	}
+
+	// MySQL, PostgreSQL, and SQLite all use the same RENAME COLUMN syntax
+	// Dialect-specific quoting is handled by quoteTable/quoteColumn
+	sql = "ALTER TABLE " + b.quoteTable(b.sqlTableName) + " RENAME COLUMN " + b.quoteColumn(oldColumnName) + " TO " + b.quoteColumn(newColumnName) + ";"
 	return sql, nil
 }
 

@@ -2640,3 +2640,351 @@ func TestPostgresSubqueryParameterIndexing(t *testing.T) {
 		}
 	}
 }
+
+func TestBuilderColumnExistsMySQL(t *testing.T) {
+	sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnExists("email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedSQL := "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?"
+	if sql != expectedSQL {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expectedSQL, sql)
+	}
+
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	} else {
+		if params[0] != "users" {
+			t.Errorf("Expected param 1 to be 'users', got %v", params[0])
+		}
+		if params[1] != "email" {
+			t.Errorf("Expected param 2 to be 'email', got %v", params[1])
+		}
+	}
+}
+
+func TestBuilderColumnExistsPostgreSQL(t *testing.T) {
+	sql, params, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").ColumnExists("email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedSQL := "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)"
+	if sql != expectedSQL {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expectedSQL, sql)
+	}
+
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	} else {
+		if params[0] != "users" {
+			t.Errorf("Expected param 1 to be 'users', got %v", params[0])
+		}
+		if params[1] != "email" {
+			t.Errorf("Expected param 2 to be 'email', got %v", params[1])
+		}
+	}
+}
+
+func TestBuilderColumnExistsSQLite(t *testing.T) {
+	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").ColumnExists("email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedSQL := "SELECT 1 FROM pragma_table_info(?) WHERE name = ?"
+	if sql != expectedSQL {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expectedSQL, sql)
+	}
+
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	} else {
+		if params[0] != "users" {
+			t.Errorf("Expected param 1 to be 'users', got %v", params[0])
+		}
+		if params[1] != "email" {
+			t.Errorf("Expected param 2 to be 'email', got %v", params[1])
+		}
+	}
+}
+
+func TestBuilderColumnExistsMSSQL(t *testing.T) {
+	sql, params, err := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").ColumnExists("email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedSQL := "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @p1 AND COLUMN_NAME = @p2"
+	if sql != expectedSQL {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expectedSQL, sql)
+	}
+
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	} else {
+		if params[0] != "users" {
+			t.Errorf("Expected param 1 to be 'users', got %v", params[0])
+		}
+		if params[1] != "email" {
+			t.Errorf("Expected param 2 to be 'email', got %v", params[1])
+		}
+	}
+}
+
+func TestBuilderColumnExistsErrorNoTable(t *testing.T) {
+	_, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).ColumnExists("email")
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}
+
+func TestBuilderColumnExistsErrorEmptyColumn(t *testing.T) {
+	_, _, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnExists("")
+	if err == nil {
+		t.Fatal("Expected error for empty column name, got nil")
+	}
+	if err.Error() != "ValidationError: column name cannot be empty" {
+		t.Errorf("Expected 'ValidationError: column name cannot be empty', got: %v", err)
+	}
+}
+
+func TestBuilderColumnAddMySQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnAdd(sb.Column{
+		Name:   "phone",
+		Type:   sb.COLUMN_TYPE_STRING,
+		Length: 20,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE `users` ADD `phone` VARCHAR(20) NOT NULL;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnAddSQLite(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").ColumnAdd(sb.Column{
+		Name:   "phone",
+		Type:   sb.COLUMN_TYPE_STRING,
+		Length: 20,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE \"users\" ADD COLUMN \"phone\" TEXT(20) NOT NULL;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnAddErrorNoTable(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).ColumnAdd(sb.Column{Name: "phone", Type: sb.COLUMN_TYPE_STRING})
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}
+
+func TestBuilderColumnDropMySQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnDrop("temp_column")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE `users` DROP COLUMN `temp_column`;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnDropPostgreSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").ColumnDrop("temp_column")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE \"users\" DROP COLUMN \"temp_column\";"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnDropErrorNoTable(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).ColumnDrop("temp_column")
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}
+
+func TestBuilderColumnRenameMySQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnRename("email", "new_email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnRenameMSSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").ColumnRename("email", "new_email")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "EXEC sp_rename 'users.email', 'new_email', 'COLUMN';"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnRenameErrorNoTable(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).ColumnRename("email", "new_email")
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}
+
+func TestBuilderRenameMySQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Rename("new_users")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE `users` RENAME `new_users`;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderRenamePostgreSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").Rename("new_users")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE \"users\" RENAME TO \"new_users\";"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderRenameSQLite(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_SQLITE).Table("users").Rename("new_users")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE \"users\" RENAME TO \"new_users\";"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderRenameMSSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").Rename("new_users")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "EXEC sp_rename 'users', 'new_users', 'OBJECT';"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderRenameErrorNoTable(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).Rename("new_users")
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}
+
+func TestBuilderRenameErrorEmptyName(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").Rename("")
+	if err == nil {
+		t.Fatal("Expected error for empty table name, got nil")
+	}
+	if err.Error() != "ValidationError: new table name cannot be empty" {
+		t.Errorf("Expected 'ValidationError: new table name cannot be empty', got: %v", err)
+	}
+}
+
+func TestBuilderColumnChangeMySQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").ColumnChange(sb.Column{
+		Name:   "email",
+		Type:   sb.COLUMN_TYPE_STRING,
+		Length: 255,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255) NOT NULL;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnChangePostgreSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_POSTGRES).Table("users").ColumnChange(sb.Column{
+		Name:   "email",
+		Type:   sb.COLUMN_TYPE_STRING,
+		Length: 255,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE \"users\" ALTER COLUMN \"email\" TEXT NOT NULL;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnChangeMSSQL(t *testing.T) {
+	sql, err := sb.NewBuilder(sb.DIALECT_MSSQL).Table("users").ColumnChange(sb.Column{
+		Name:   "email",
+		Type:   sb.COLUMN_TYPE_STRING,
+		Length: 255,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "ALTER TABLE [users] ALTER COLUMN \"email\" NVARCHAR(255) NOT NULL;"
+	if sql != expected {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expected, sql)
+	}
+}
+
+func TestBuilderColumnChangeErrorNoTable(t *testing.T) {
+	_, err := sb.NewBuilder(sb.DIALECT_MYSQL).ColumnChange(sb.Column{Name: "email", Type: sb.COLUMN_TYPE_STRING})
+	if err == nil {
+		t.Fatal("Expected error for missing table, got nil")
+	}
+	if err.Error() != "ValidationError: no table specified" {
+		t.Errorf("Expected 'ValidationError: no table specified', got: %v", err)
+	}
+}

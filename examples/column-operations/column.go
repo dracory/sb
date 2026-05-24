@@ -8,7 +8,7 @@ import (
 func AddColumn() (string, error) {
 	return sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		TableColumnAdd("users", sb.Column{
+		ColumnAdd(sb.Column{
 			Name:     "phone",
 			Type:     sb.COLUMN_TYPE_STRING,
 			Length:   20,
@@ -20,12 +20,19 @@ func AddColumn() (string, error) {
 func DropColumn() (string, error) {
 	return sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		TableColumnDrop("users", "temp_column")
+		ColumnDrop("temp_column")
 }
 
 // RenameColumn returns an ALTER TABLE RENAME COLUMN SQL statement
 func RenameColumn() (string, error) {
 	return sb.NewBuilder(sb.DIALECT_MYSQL).
 		Table("users").
-		TableColumnRename("users", "email", "new_email")
+		ColumnRename("email", "new_email")
+}
+
+// ColumnExists returns the SQL query and parameters for checking if a column exists
+func ColumnExists() (string, []interface{}, error) {
+	return sb.NewBuilder(sb.DIALECT_MYSQL).
+		Table("users").
+		ColumnExists("email")
 }

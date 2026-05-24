@@ -129,19 +129,42 @@ type BuilderInterface interface {
 	// TruncateWithOptions truncates a table with additional options
 	TruncateWithOptions(opts TruncateOptions) (string, error)
 
+	// ColumnChange changes a column in the table using the table from the Table() method
+	ColumnChange(column Column) (sqlString string, err error)
+
+	// ColumnExists returns the SQL query and parameters for checking if a column exists in a table
+	ColumnExists(columnName string) (sql string, params []interface{}, err error)
+
+	// ColumnAdd adds a column to the table using the table from the Table() method
+	ColumnAdd(column Column) (sql string, err error)
+
+	// ColumnDrop drops a column from the table using the table from the Table() method
+	ColumnDrop(columnName string) (sqlString string, err error)
+
+	// ColumnRename renames a column in a table using the table from the Table() method
+	ColumnRename(oldColumnName, newColumnName string) (sql string, err error)
+
+	// Rename renames a table using the table from the Table() method
+	Rename(newTableName string) (sql string, err error)
+
 	// TableColumnAdd adds a column to the table
+	// Deprecated: Use ColumnAdd instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 	TableColumnAdd(tableName string, column Column) (sqlString string, err error)
 
 	// TableColumnChange changes a column in the table
+	// Deprecated: Use ColumnChange instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 	TableColumnChange(tableName string, column Column) (sqlString string, err error)
 
 	// Table column drop drops a column
+	// Deprecated: Use ColumnDrop instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 	TableColumnDrop(tableName string, columnName string) (sqlString string, err error)
 
 	// TableColumnRename renames a column in a table
+	// Deprecated: Use ColumnRename instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 	TableColumnRename(tableName, oldColumnName, newColumnName string) (sqlString string, err error)
 
 	// TableRename renames a table
+	// Deprecated: Use Rename instead, which uses the table from the Table() method. Scheduled for removal in May 2027.
 	TableRename(oldTableName string, newTableName string) (sqlString string, err error)
 }
 

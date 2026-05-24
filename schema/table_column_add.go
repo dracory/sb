@@ -19,7 +19,7 @@ func TableColumnAdd(ctx database.QueryableContext, tableName string, column sb.C
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	sqlStr, err := sb.NewBuilder(databaseType).TableColumnAdd(tableName, column)
+	sqlStr, err := sb.NewBuilder(databaseType).Table(tableName).ColumnAdd(column)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func TableColumnAddIfNotExists(ctx database.QueryableContext, tableName string, 
 
 	databaseType := database.DatabaseType(ctx.Queryable())
 
-	sqlStr, err := sb.NewBuilder(databaseType).TableColumnAdd(tableName, column)
+	sqlStr, err := sb.NewBuilder(databaseType).Table(tableName).ColumnAdd(column)
 	if err != nil {
 		return err
 	}
