@@ -16,7 +16,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
-	modernc.org/libc v1.70.0 // indirect
+	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
@@ -27,8 +27,7 @@ require (
 	github.com/georgysavva/scany v1.2.3
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/lib/pq v1.12.0
-	github.com/mattn/go-sqlite3 v1.14.37
 	github.com/samber/lo v1.53.0
 	github.com/spf13/cast v1.10.0
-	modernc.org/sqlite v1.47.0
+	modernc.org/sqlite v1.50.1
 )

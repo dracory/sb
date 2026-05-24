@@ -124,9 +124,19 @@ type TruncateOptions struct {
 
 Remove columns from an existing table.
 
-### Builder Method (SQL Generation)
+### Builder Method (SQL Generation) - Fluent API (Recommended)
 
 ```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    ColumnDrop("temp_column")
+// Result: ALTER TABLE `users` DROP COLUMN `temp_column`;
+```
+
+### Builder Method (SQL Generation) - Deprecated
+
+```go
+// Deprecated: Use ColumnDrop instead. Scheduled for removal in May 2027.
 sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
     TableColumnDrop("users", "temp_column")
 // Result: ALTER TABLE `users` DROP COLUMN `temp_column`;
@@ -138,7 +148,7 @@ sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 import "github.com/dracory/database"
 
 // Drop column directly using database context
-err := sb.TableColumnDrop(database.Context(ctx, db), "users", "temp_column")
+err := schema.TableColumnDrop(database.Context(ctx, db), "users", "temp_column")
 if err != nil {
     log.Fatal("Error dropping column:", err)
 }
@@ -148,7 +158,7 @@ if err != nil {
 
 ```go
 // Safe drop - no error if column doesn't exist
-err := sb.TableColumnDropIfExists(database.Context(ctx, db), "users", "temp_column")
+err = schema.TableColumnDropIfExists(database.Context(ctx, db), "users", "temp_column")
 if err != nil {
     log.Fatal("Error dropping column:", err)
 }
@@ -167,9 +177,19 @@ if err != nil {
 
 Rename columns in an existing table.
 
-### Builder Method (SQL Generation)
+### Builder Method (SQL Generation) - Fluent API (Recommended)
 
 ```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    ColumnRename("email", "new_email")
+// Result: ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;
+```
+
+### Builder Method (SQL Generation) - Deprecated
+
+```go
+// Deprecated: Use ColumnRename instead. Scheduled for removal in May 2027.
 sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
     TableColumnRename("users", "email", "new_email")
 // Result: ALTER TABLE `users` RENAME COLUMN `email` TO `new_email`;
@@ -181,7 +201,7 @@ sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
 import "github.com/dracory/database"
 
 // Rename column directly using database context
-err := sb.TableColumnRename(database.Context(ctx, db), "users", "email", "new_email")
+err := schema.TableColumnRename(database.Context(ctx, db), "users", "email", "new_email")
 if err != nil {
     log.Fatal("Error renaming column:", err)
 }
@@ -194,6 +214,136 @@ if err != nil {
 -- PostgreSQL: ALTER TABLE "users" RENAME COLUMN "email" TO "new_email";
 -- SQLite: ALTER TABLE "users" RENAME COLUMN "email" TO "new_email";
 -- MSSQL: EXEC sp_rename [users].[email], [new_email], 'COLUMN';
+```
+
+## ADD COLUMN
+
+Add columns to an existing table.
+
+### Builder Method (SQL Generation) - Fluent API (Recommended)
+
+```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    ColumnAdd(sb.Column{
+        Name:     "email",
+        Type:     sb.COLUMN_TYPE_STRING,
+        Length:   255,
+        Nullable: false,
+    })
+// Result: ALTER TABLE `users` ADD COLUMN `email` VARCHAR(255) NOT NULL;
+```
+
+### Builder Method (SQL Generation) - Deprecated
+
+```go
+// Deprecated: Use ColumnAdd instead. Scheduled for removal in May 2027.
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableColumnAdd("users", sb.Column{
+        Name:     "email",
+        Type:     sb.COLUMN_TYPE_STRING,
+        Length:   255,
+        Nullable: false,
+    })
+// Result: ALTER TABLE `users` ADD COLUMN `email` VARCHAR(255) NOT NULL;
+```
+
+### Standalone Function (Execution)
+
+```go
+column := sb.Column{
+    Name:     "email",
+    Type:     sb.COLUMN_TYPE_STRING,
+    Length:   255,
+    Nullable: false,
+}
+
+err := schema.TableColumnAdd(ctx, db, "users", column)
+if err != nil {
+    log.Fatal("Error adding column:", err)
+}
+
+// Add column if it doesn't exist
+err = schema.TableColumnAddIfNotExists(ctx, db, "users", column)
+```
+
+### Database-Specific SQL
+
+```sql
+-- MySQL: ALTER TABLE `users` ADD COLUMN `email` VARCHAR(255) NOT NULL;
+-- PostgreSQL: ALTER TABLE "users" ADD COLUMN "email" VARCHAR(255) NOT NULL;
+-- SQLite: ALTER TABLE "users" ADD COLUMN "email" TEXT(255) NOT NULL;
+-- MSSQL: ALTER TABLE [users] ADD COLUMN [email] NVARCHAR(255) NOT NULL;
+```
+
+## CHANGE COLUMN
+
+Modify column definitions in an existing table.
+
+### Builder Method (SQL Generation) - Fluent API (Recommended)
+
+```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    ColumnChange(sb.Column{
+        Name:   "email",
+        Type:   sb.COLUMN_TYPE_STRING,
+        Length: 255,
+    })
+// Result: ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255) NOT NULL;
+```
+
+### Builder Method (SQL Generation) - Deprecated
+
+```go
+// Deprecated: Use ColumnChange instead. Scheduled for removal in May 2027.
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableColumnChange("users", sb.Column{
+        Name:   "email",
+        Type:   sb.COLUMN_TYPE_STRING,
+        Length: 255,
+    })
+// Result: ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255) NOT NULL;
+```
+
+### Database-Specific SQL
+
+```sql
+-- MySQL: ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255) NOT NULL;
+-- PostgreSQL: ALTER TABLE "users" ALTER COLUMN "email" TYPE VARCHAR(255);
+-- SQLite: ALTER TABLE "users" ALTER COLUMN "email" TEXT(255);
+-- MSSQL: ALTER TABLE [users] ALTER COLUMN [email] NVARCHAR(255);
+```
+
+## RENAME TABLE
+
+Rename tables in the database.
+
+### Builder Method (SQL Generation) - Fluent API (Recommended)
+
+```go
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    Rename("new_users")
+// Result: ALTER TABLE `users` RENAME `new_users`;
+```
+
+### Builder Method (SQL Generation) - Deprecated
+
+```go
+// Deprecated: Use Rename instead. Scheduled for removal in May 2027.
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableRename("users", "new_users")
+// Result: ALTER TABLE `users` RENAME `new_users`;
+```
+
+### Database-Specific SQL
+
+```sql
+-- MySQL: ALTER TABLE `users` RENAME `new_users`;
+-- PostgreSQL: ALTER TABLE "users" RENAME TO "new_users";
+-- SQLite: ALTER TABLE "users" RENAME TO "new_users";
+-- MSSQL: EXEC sp_rename 'users', 'new_users', 'OBJECT';
 ```
 
 ## Table Existence Check
@@ -321,15 +471,17 @@ for _, col := range columns {
 
 ## SQL Generation vs Execution
 
-| Operation | SQL Generation (sb) | Execution (schema) |
-|-----------|---------------------|-------------------|
-| CREATE TABLE | `builder.Create()` | `schema.TableCreate()` |
-| DROP TABLE | `builder.Drop()` | `schema.TableDrop()` |
-| ADD COLUMN | `builder.TableColumnAdd()` | `schema.TableColumnAdd()` |
-| DROP COLUMN | `builder.TableColumnDrop()` | `schema.TableColumnDrop()` |
-| RENAME COLUMN | `builder.TableColumnRename()` | `schema.TableColumnRename()` |
-| COLUMN EXISTS | — | `schema.TableColumnExists()` |
-| GET COLUMNS | — | `schema.TableColumns()` |
+| Operation | SQL Generation (sb) - Fluent API (Recommended) | SQL Generation (sb) - Deprecated | Execution (schema) |
+|-----------|---------------------------------------------|--------------------------------|-------------------|
+| CREATE TABLE | `builder.Create()` | — | `schema.TableCreate()` |
+| DROP TABLE | `builder.Drop()` | — | `schema.TableDrop()` |
+| ADD COLUMN | `builder.ColumnAdd()` | `builder.TableColumnAdd()` (May 2027) | `schema.TableColumnAdd()` |
+| DROP COLUMN | `builder.ColumnDrop()` | `builder.TableColumnDrop()` (May 2027) | `schema.TableColumnDrop()` |
+| RENAME COLUMN | `builder.ColumnRename()` | `builder.TableColumnRename()` (May 2027) | `schema.TableColumnRename()` |
+| CHANGE COLUMN | `builder.ColumnChange()` | `builder.TableColumnChange()` (May 2027) | — |
+| RENAME TABLE | `builder.Rename()` | `builder.TableRename()` (May 2027) | — |
+| COLUMN EXISTS | `builder.ColumnExists()` | — | `schema.TableColumnExists()` |
+| GET COLUMNS | — | — | `schema.TableColumns()` |
 
 **Use Builder methods** when you need to:
 - Generate SQL strings for logging/debugging
