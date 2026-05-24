@@ -1,47 +1,79 @@
 package sb_test
 
 import (
-	"database/sql"
 	"testing"
 
-	_ "modernc.org/sqlite"
-
-	"github.com/dracory/sb"
-	"github.com/dracory/sb/integration_tests/common"
+	"github.com/dracory/sb/integration_tests/common/builder"
 )
 
-// TestSQLiteIntegration tests SQLite database integration with zero-panic error handling
-func TestSQLiteIntegration(t *testing.T) {
-	// Use in-memory SQLite database (modernc.org/sqlite is pure Go, no CGO required)
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to open SQLite database: %v", err)
-	}
-	defer db.Close()
+// TestSQLiteCreateTable tests table creation on SQLite
+func TestSQLiteCreateTable(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.CreateTable(t, driver)
+}
 
-	// Test table creation with unique name
-	tableName := "test_users_sqlite"
-	err = common.CreateTestTable(db, tableName, sb.DIALECT_SQLITE)
-	if err != nil {
-		t.Fatalf("Failed to create test table: %v", err)
-	}
-	defer common.DropTestTable(db, tableName) // Clean up after test
+// TestSQLiteDropTable tests table dropping on SQLite
+func TestSQLiteDropTable(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.DropTable(t, driver)
+}
 
-	// Test successful SQL generation and execution
-	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
-		Table(tableName).
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
-		Select([]string{"name", "email"})
+// TestSQLiteDropTableIfExists tests safe table dropping on SQLite
+func TestSQLiteDropTableIfExists(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.DropTableIfExists(t, driver)
+}
 
-	if err != nil {
-		t.Fatalf("Failed to generate SQL: %v", err)
-	}
+// TestSQLiteInsert tests INSERT operations on SQLite
+func TestSQLiteInsert(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.Insert(t, driver)
+}
 
-	// Execute the generated SQL with parameters
-	_, err = db.Exec(sql, params...)
-	if err != nil {
-		t.Fatalf("Failed to execute SQL: %v\nSQL: %s", err, sql)
-	}
+// TestSQLiteSelect tests SELECT operations on SQLite
+func TestSQLiteSelect(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.Select(t, driver)
+}
 
-	t.Logf("Successfully executed SQLite integration test")
+// TestSQLiteUpdate tests UPDATE operations on SQLite
+func TestSQLiteUpdate(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.Update(t, driver)
+}
+
+// TestSQLiteDelete tests DELETE operations on SQLite
+func TestSQLiteDelete(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.Delete(t, driver)
+}
+
+// TestSQLiteErrorMissingTable tests error handling for missing table on SQLite
+func TestSQLiteErrorMissingTable(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.ErrorMissingTable(t, driver)
+}
+
+// TestSQLiteErrorEmptyJoinCondition tests error handling for empty JOIN condition on SQLite
+func TestSQLiteErrorEmptyJoinCondition(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.ErrorEmptyJoinCondition(t, driver)
+}
+
+// TestSQLiteErrorNilSubquery tests error handling for nil subquery on SQLite
+func TestSQLiteErrorNilSubquery(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.ErrorNilSubquery(t, driver)
+}
+
+// TestSQLiteErrorEmptyColumnName tests error handling for empty column name on SQLite
+func TestSQLiteErrorEmptyColumnName(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.ErrorEmptyColumnName(t, driver)
+}
+
+// TestSQLiteErrorEmptyColumnType tests error handling for empty column type on SQLite
+func TestSQLiteErrorEmptyColumnType(t *testing.T) {
+	driver := &SQLiteDriver{}
+	builder.ErrorEmptyColumnType(t, driver)
 }

@@ -1,58 +1,91 @@
 package sb_test
 
 import (
-	"database/sql"
-	"fmt"
-	"os"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql"
-
-	"github.com/dracory/sb"
-	"github.com/dracory/sb/integration_tests/common"
+	"github.com/dracory/sb/integration_tests/common/builder"
 )
 
-// TestMySQLIntegration tests MySQL database integration with zero-panic error handling
-// Only runs in GitHub Actions environment
-func TestMySQLIntegration(t *testing.T) {
-	// Skip if not in GitHub Actions
-	if os.Getenv("GITHUB_ACTIONS") != "true" {
-		t.Skip("Integration tests only run in GitHub Actions")
-		return
-	}
+// TestMySQLCreateTable tests table creation on MySQL
+func TestMySQLCreateTable(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.CreateTable(t, driver)
+}
 
-	// Skip if MySQL is not available
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", "root", "root", "127.0.0.1", "3306", "test")
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		t.Skip("MySQL not available for integration testing:", err)
-		return
-	}
-	defer db.Close()
+// TestMySQLDropTable tests table dropping on MySQL
+func TestMySQLDropTable(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.DropTable(t, driver)
+}
 
-	// Test table creation with unique name
-	tableName := "test_users_mysql"
-	err = common.CreateTestTable(db, tableName, sb.DIALECT_MYSQL)
-	if err != nil {
-		t.Fatalf("Failed to create test table: %v", err)
-	}
-	defer common.DropTestTable(db, tableName) // Clean up after test
+// TestMySQLDropTableIfExists tests safe table dropping on MySQL
+func TestMySQLDropTableIfExists(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.DropTableIfExists(t, driver)
+}
 
-	// Test successful SQL generation and execution
-	sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).
-		Table(tableName).
-		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"}).
-		Select([]string{"name", "email"})
+// TestMySQLInsert tests INSERT operations on MySQL
+func TestMySQLInsert(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.Insert(t, driver)
+}
 
-	if err != nil {
-		t.Fatalf("Failed to generate SQL: %v", err)
-	}
+// TestMySQLSelect tests SELECT operations on MySQL
+func TestMySQLSelect(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.Select(t, driver)
+}
 
-	// Execute the generated SQL with parameters
-	_, err = db.Exec(sql, params...)
-	if err != nil {
-		t.Fatalf("Failed to execute SQL: %v\nSQL: %s", err, sql)
-	}
+// TestMySQLUpdate tests UPDATE operations on MySQL
+func TestMySQLUpdate(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.Update(t, driver)
+}
 
-	t.Logf("Successfully executed MySQL integration test")
+// TestMySQLDelete tests DELETE operations on MySQL
+func TestMySQLDelete(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.Delete(t, driver)
+}
+
+// TestMySQLErrorMissingTable tests error handling for missing table on MySQL
+func TestMySQLErrorMissingTable(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.ErrorMissingTable(t, driver)
+}
+
+// TestMySQLErrorEmptyJoinCondition tests error handling for empty JOIN condition on MySQL
+func TestMySQLErrorEmptyJoinCondition(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.ErrorEmptyJoinCondition(t, driver)
+}
+
+// TestMySQLErrorNilSubquery tests error handling for nil subquery on MySQL
+func TestMySQLErrorNilSubquery(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.ErrorNilSubquery(t, driver)
+}
+
+// TestMySQLErrorEmptyColumnName tests error handling for empty column name on MySQL
+func TestMySQLErrorEmptyColumnName(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.ErrorEmptyColumnName(t, driver)
+}
+
+// TestMySQLErrorEmptyColumnType tests error handling for empty column type on MySQL
+func TestMySQLErrorEmptyColumnType(t *testing.T) {
+	driver := &MySQLDriver{}
+	driver.SkipIfUnavailable(t)
+	builder.ErrorEmptyColumnType(t, driver)
 }
