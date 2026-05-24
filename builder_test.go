@@ -2603,3 +2603,40 @@ func TestWhereClauseSQLOperators(t *testing.T) {
 		})
 	}
 }
+func TestPostgresSubqueryParameterIndexing(t *testing.T) {
+	b := sb.NewBuilder(sb.DIALECT_POSTGRES)
+
+	subquery := sb.NewBuilder(sb.DIALECT_POSTGRES).
+		Table("orders").
+		Where(&sb.Where{Column: "total", Operator: ">", Value: "1000"})
+
+	b.Table("users").
+		Where(&sb.Where{Column: "status", Operator: "=", Value: "active"})
+
+	_, err := b.InSubquery(subquery)
+	if err != nil {
+		t.Fatalf("Unexpected error in InSubquery: %v", err)
+	}
+
+	sql, params, err := b.Select([]string{"name"})
+
+	if err != nil {
+		t.Fatalf("Unexpected error in Select: %v", err)
+	}
+
+	expectedSQL := `SELECT "name" FROM "users" WHERE "status" = $1 AND "id" IN (SELECT * FROM "orders" WHERE "total" > $2);`
+	if sql != expectedSQL {
+		t.Errorf("Expected SQL:\n%s\nGot:\n%s", expectedSQL, sql)
+	}
+
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	} else {
+		if params[0] != "active" {
+			t.Errorf("Expected param 1 to be 'active', got %v", params[0])
+		}
+		if params[1] != "1000" {
+			t.Errorf("Expected param 2 to be '1000', got %v", params[1])
+		}
+	}
+}
