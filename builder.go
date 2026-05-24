@@ -843,11 +843,7 @@ func (b *Builder) InnerJoin(table string, onCondition string) BuilderInterface {
  * @return string
  * @access public
  */
-// Delete deletes rows from a table
-func (b *Builder) Delete() (string, []interface{}, error) {
-	// Reset parameters for new query
-	b.resetParams()
-
+func (b *Builder) deleteSQL() (string, []interface{}, error) {
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
 		return "", nil, err
@@ -886,6 +882,13 @@ func (b *Builder) Delete() (string, []interface{}, error) {
 		sql = "DELETE FROM " + b.quoteTable(b.sqlTableName) + where + orderBy + limit + offset + ";"
 	}
 	return sql, b.params, nil
+}
+
+// Delete deletes rows from a table
+func (b *Builder) Delete() (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+	return b.deleteSQL()
 }
 
 // Drop deletes a table or a view
@@ -1110,10 +1113,7 @@ func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName stri
  * @return mixed rows as associative array, false on error
  * @access public
  */
-func (b *Builder) Select(columns []string) (string, []interface{}, error) {
-	// Reset parameters for new query
-	b.resetParams()
-
+func (b *Builder) selectSQL(columns []string) (string, []interface{}, error) {
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
 		return "", nil, err
@@ -1203,6 +1203,12 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 	return sql, b.params, nil
 }
 
+func (b *Builder) Select(columns []string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+	return b.selectSQL(columns)
+}
+
 /**
  * The <b>update</b> method updates the values of a row in a table.
  * <code>
@@ -1231,10 +1237,7 @@ func (b *Builder) Select(columns []string) (string, []interface{}, error) {
 //	  Insert(map[string]string{"name": "John", "email": "john@example.com"})
 //
 // Returns the SQL statement and parameters for execution.
-func (b *Builder) Insert(columnValuesMap map[string]string) (string, []interface{}, error) {
-	// Reset parameters for new query
-	b.resetParams()
-
+func (b *Builder) insertSQL(columnValuesMap map[string]string) (string, []interface{}, error) {
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
 		return "", nil, err
@@ -1277,6 +1280,29 @@ func (b *Builder) Insert(columnValuesMap map[string]string) (string, []interface
 	}
 
 	return "INSERT INTO " + b.quoteTable(b.sqlTableName) + " (" + strings.Join(columnNames, ", ") + ") VALUES (" + strings.Join(columnValues, ", ") + ")" + limit + offset + ";", b.params, nil
+}
+
+// Insert inserts a row into a table.
+//
+// NOTE: This method inserts a single record. For bulk inserts, be aware of database parameter limits:
+//   - SQLite: 999 parameters per statement (e.g., 124 records with 8 columns each)
+//   - MySQL: ~65,535 parameters (limited by max_allowed_packet setting)
+//   - PostgreSQL: ~32,767 parameters for prepared statements
+//   - MSSQL: 2,100 parameters
+//
+// For large bulk inserts, split data into batches to avoid "too many SQL variables" errors.
+//
+// Example:
+//
+//	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
+//	  Table("users").
+//	  Insert(map[string]string{"name": "John", "email": "john@example.com"})
+//
+// Returns the SQL statement and parameters for execution.
+func (b *Builder) Insert(columnValuesMap map[string]string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+	return b.insertSQL(columnValuesMap)
 }
 
 // Truncate removes all data from a table.
@@ -1372,10 +1398,7 @@ func (b *Builder) TruncateWithOptions(opts TruncateOptions) (string, error) {
 //	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").
 //	  Where(sb.Where{Column: "id", Operator: "=", Value: "1"}).
 //	  Update(map[string]string{"name": "John", "email": "john@example.com"})
-func (b *Builder) Update(columnValues map[string]string) (string, []interface{}, error) {
-	// Reset parameters for new query
-	b.resetParams()
-
+func (b *Builder) updateSQL(columnValues map[string]string) (string, []interface{}, error) {
 	// First validate any collected errors from fluent chaining
 	if err := b.validateAndReturnError(); err != nil {
 		return "", nil, err
@@ -1436,6 +1459,19 @@ func (b *Builder) Update(columnValues map[string]string) (string, []interface{},
 	}
 
 	return "UPDATE " + b.quoteTable(b.sqlTableName) + " SET " + strings.Join(updateSql, ", ") + join + where + groupBy + orderBy + limit + offset + ";", b.params, nil
+}
+
+// Update updates the values of rows in a table.
+//
+// Example:
+//
+//	sql := sb.NewBuilder(sb.DIALECT_MYSQL).Table("users").
+//	  Where(sb.Where{Column: "id", Operator: "=", Value: "1"}).
+//	  Update(map[string]string{"name": "John", "email": "john@example.com"})
+func (b *Builder) Update(columnValues map[string]string) (string, []interface{}, error) {
+	// Reset parameters for new query
+	b.resetParams()
+	return b.updateSQL(columnValues)
 }
 
 // Where adds a WHERE clause to the query.

@@ -64,8 +64,8 @@ func TestCorrelatedSubquery(t *testing.T) {
 	if sql == "" {
 		t.Fatal("SQL should not be empty")
 	}
-	if len(params) != 1 {
-		t.Fatalf("Expected 1 parameter, got %d", len(params))
+	if len(params) != 2 {
+		t.Fatalf("Expected 2 parameters, got %d", len(params))
 	}
 }
 

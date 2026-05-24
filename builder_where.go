@@ -232,11 +232,16 @@ func (b *Builder) whereToSqlSubquery(where Where) (string, error) {
 	}
 
 	// Generate subquery SQL without the trailing semicolon
-	// Note: Select now returns (sql, params, error) but we only need the SQL for subqueries
-	subquerySQL, _, err := where.Subquery.Select(columns)
+	// Sync paramIndex to ensure correct parameter placeholder numbering in subqueries
+	where.Subquery.paramIndex = b.paramIndex
+	subquerySQL, subqueryParams, err := where.Subquery.selectSQL(columns)
 	if err != nil {
 		return "", err
 	}
+
+	// Add subquery parameters to the parent builder
+	b.params = append(b.params, subqueryParams...)
+	b.paramIndex += len(subqueryParams)
 	// Remove the trailing semicolon from subquery
 	subquerySQL = strings.TrimSuffix(subquerySQL, ";")
 
