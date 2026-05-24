@@ -78,7 +78,8 @@ result, err := myDb.Exec(ctx, sql, params...)  // Pass params separately
 ### Core Operations
 
 - **[Database Connection](docs/database-connection.md)** - Setup and configuration
-- **[Table Operations](docs/tables.md)** - CREATE, DROP, TRUNCATE tables
+- **[Table Operations](docs/tables.md)** - CREATE, DROP, TRUNCATE tables (SQL generation)
+- **[Schema Operations](docs/tables.md#schema-execution)** - Table/column execution functions (in `schema` package)
 - **[SELECT Queries](docs/selects.md)** - SELECT statements and subqueries
 - **[INSERT Operations](docs/inserts.md)** - INSERT statements
 - **[UPDATE & DELETE](docs/updates.md)** - UPDATE and DELETE operations
@@ -212,6 +213,42 @@ rows, err := db.Query(sql, params...)
 ```
 
 ## Migration Guide
+
+### Breaking Changes in v0.19.0
+
+Schema execution functions have been moved to the `schema` sub-package. This is a **hard-breaking change** — no backward compatibility aliases are provided.
+
+#### Affected Functions
+- `TableCreate` → `schema.TableCreate`
+- `TableDrop`, `TableDropIfExists` → `schema.TableDrop`, `schema.TableDropIfExists`
+- `TableColumnAdd`, `ExecuteTableColumnAddIfNotExists` → `schema.TableColumnAdd`, `schema.TableColumnAddIfNotExists`
+- `TableColumnDrop`, `TableColumnDropIfExists` → `schema.TableColumnDrop`, `schema.TableColumnDropIfExists`
+- `TableColumnRename` → `schema.TableColumnRename`
+- `TableColumnExists` → `schema.TableColumnExists`
+- `TableColumns` → `schema.TableColumns`
+
+#### Before (v0.18.x)
+```go
+import "github.com/dracory/sb"
+
+err := sb.TableCreate(ctx, db, "users", columns)
+err := sb.TableColumnDrop(ctx, db, "users", "temp_column")
+exists, err := sb.TableColumnExists(ctx, db, "users", "id")
+```
+
+#### After (v0.19.0)
+```go
+import (
+    "github.com/dracory/sb"
+    "github.com/dracory/sb/schema"
+)
+
+err := schema.TableCreate(ctx, db, "users", columns)
+err := schema.TableColumnDrop(ctx, db, "users", "temp_column")
+exists, err := schema.TableColumnExists(ctx, db, "users", "id")
+```
+
+**Note:** Builder methods for SQL generation remain in the `sb` package (e.g., `builder.TableColumnDrop()` for SQL generation, `schema.TableColumnDrop()` for execution).
 
 ### Breaking Changes in v0.18.0
 

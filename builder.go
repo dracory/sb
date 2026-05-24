@@ -1068,33 +1068,6 @@ func (b *Builder) TableColumnDrop(tableName, columnName string) (sqlString strin
 	return sqlString, nil
 }
 
-// TableColumnExists checks if a column exists in a table for various database types
-//
-//	Example:
-//	b := NewBuilder(DIALECT_MYSQL)
-//	sqlString, sqlParams, err := b.TableColumnExists("test_table", "test_column")
-//
-// Params:
-// - tableName: The name of the table to check.
-// - columnName: The name of the column to check.
-//
-// Returns:
-// - sql: The SQL statement to check for the existence of the column.
-// - params: An array of parameters to be bound to the statement.
-// - err: An error object, if any.
-func (b *Builder) TableColumnExists(tableName, columnName string) (sql string, params []interface{}, err error) {
-	switch b.Dialect {
-	case DIALECT_MYSQL:
-		return "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?", []interface{}{tableName, columnName}, nil
-	case DIALECT_POSTGRES:
-		return "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)", []interface{}{tableName, columnName}, nil
-	case DIALECT_SQLITE:
-		return "SELECT 1 FROM pragma_table_info(?) WHERE name = ?", []interface{}{tableName, columnName}, nil
-	default:
-		return "", nil, fmt.Errorf("database type '%s' not supported", b.Dialect)
-	}
-}
-
 func (b *Builder) TableColumnRename(tableName, oldColumnName, newColumnName string) (sql string, err error) {
 	if tableName == "" {
 		return "", ErrEmptyTableName

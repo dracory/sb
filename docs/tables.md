@@ -1,5 +1,7 @@
 # Table Operations
 
+This document covers SQL generation for table operations (using the `sb` package). For **database execution** functions (CREATE, DROP, column operations), see the [Schema Execution](#schema-execution) section below, which uses the `schema` sub-package.
+
 ## CREATE TABLE
 
 Create tables with comprehensive column definitions and database-specific dialect support.
@@ -201,3 +203,140 @@ Check if a table exists in the database.
 ```go
 exists := sb.TableColumnExists(db, "users", "id")
 ```
+
+---
+
+# Schema Execution
+
+The `schema` sub-package (`github.com/dracory/sb/schema`) provides database execution functions for table and column operations. These functions execute SQL directly against the database, as opposed to the Builder methods which only generate SQL strings.
+
+## Import
+
+```go
+import (
+    "github.com/dracory/sb"
+    "github.com/dracory/sb/schema"
+)
+```
+
+## CREATE TABLE
+
+Execute table creation directly against the database.
+
+```go
+ctx := context.Background()
+db := sb.NewDatabaseFromDriver("sqlite3", "test.db")
+
+columns := []sb.Column{
+    {Name: "id", Type: sb.COLUMN_TYPE_INT, PrimaryKey: true},
+    {Name: "name", Type: sb.COLUMN_TYPE_STRING, Length: 255},
+}
+
+err := schema.TableCreate(ctx, db, "users", columns)
+if err != nil {
+    log.Fatal("Error creating table:", err)
+}
+```
+
+## DROP TABLE
+
+Execute table drop directly against the database.
+
+```go
+err := schema.TableDrop(ctx, db, "users")
+if err != nil {
+    log.Fatal("Error dropping table:", err)
+}
+
+// Safe drop - no error if table doesn't exist
+err = schema.TableDropIfExists(ctx, db, "users")
+```
+
+## COLUMN OPERATIONS
+
+### Add Column
+
+```go
+column := sb.Column{
+    Name:     "email",
+    Type:     sb.COLUMN_TYPE_STRING,
+    Length:   255,
+    Nullable: true,
+}
+
+err := schema.TableColumnAdd(ctx, db, "users", column)
+if err != nil {
+    log.Fatal("Error adding column:", err)
+}
+
+// Add column if it doesn't exist
+err = schema.TableColumnAddIfNotExists(ctx, db, "users", column)
+```
+
+### Drop Column
+
+```go
+err := schema.TableColumnDrop(ctx, db, "users", "temp_column")
+if err != nil {
+    log.Fatal("Error dropping column:", err)
+}
+
+// Safe drop - no error if column doesn't exist
+err = schema.TableColumnDropIfExists(ctx, db, "users", "temp_column")
+```
+
+### Rename Column
+
+```go
+err := schema.TableColumnRename(ctx, db, "users", "email", "new_email")
+if err != nil {
+    log.Fatal("Error renaming column:", err)
+}
+```
+
+### Check Column Exists
+
+```go
+exists, err := schema.TableColumnExists(ctx, db, "users", "email")
+if err != nil {
+    log.Fatal("Error checking column:", err)
+}
+if exists {
+    fmt.Println("Column exists")
+}
+```
+
+### Get Table Columns
+
+```go
+columns, err := schema.TableColumns(ctx, db, "users", true) // true = commonize types
+if err != nil {
+    log.Fatal("Error getting columns:", err)
+}
+
+for _, col := range columns {
+    fmt.Printf("Column: %s, Type: %s\n", col.Name, col.Type)
+}
+```
+
+## SQL Generation vs Execution
+
+| Operation | SQL Generation (sb) | Execution (schema) |
+|-----------|---------------------|-------------------|
+| CREATE TABLE | `builder.Create()` | `schema.TableCreate()` |
+| DROP TABLE | `builder.Drop()` | `schema.TableDrop()` |
+| ADD COLUMN | `builder.TableColumnAdd()` | `schema.TableColumnAdd()` |
+| DROP COLUMN | `builder.TableColumnDrop()` | `schema.TableColumnDrop()` |
+| RENAME COLUMN | `builder.TableColumnRename()` | `schema.TableColumnRename()` |
+| COLUMN EXISTS | — | `schema.TableColumnExists()` |
+| GET COLUMNS | — | `schema.TableColumns()` |
+
+**Use Builder methods** when you need to:
+- Generate SQL strings for logging/debugging
+- Build complex queries before execution
+- Use the SQL in other contexts
+
+**Use schema functions** when you need to:
+- Execute schema operations directly against the database
+- Perform existence checks
+- Retrieve metadata from the database

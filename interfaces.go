@@ -138,9 +138,6 @@ type BuilderInterface interface {
 	// Table column drop drops a column
 	TableColumnDrop(tableName string, columnName string) (sqlString string, err error)
 
-	// TableColumnExists checks if a column exists in a table
-	TableColumnExists(tableName, columnName string) (sqlString string, sqlParams []any, err error)
-
 	// TableColumnRename renames a column in a table
 	TableColumnRename(tableName, oldColumnName, newColumnName string) (sqlString string, err error)
 

@@ -1,16 +1,17 @@
-package sb
+package schema
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/dracory/database"
+	"github.com/dracory/sb"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 )
 
-// TableColumns returns a list of columns for a given table name
-func TableColumns(ctx database.QueryableContext, tableName string, commonize bool) (columns []Column, err error) {
+// TableColumns returns a list of columns for a given table name.
+func TableColumns(ctx database.QueryableContext, tableName string, commonize bool) (columns []sb.Column, err error) {
 	if ctx.Queryable() == nil {
 		return nil, errors.New("queryable cannot be nil")
 	}
@@ -36,7 +37,7 @@ func TableColumns(ctx database.QueryableContext, tableName string, commonize boo
 	return columns, errors.New("not implemented for database driver: " + databaseType)
 }
 
-func tableColumnsMysql(ctx database.QueryableContext, tableName string, commonize bool) (columns []Column, err error) {
+func tableColumnsMysql(ctx database.QueryableContext, tableName string, commonize bool) (columns []sb.Column, err error) {
 	sql := "DESCRIBE `" + tableName + "`;"
 
 	rows, err := database.SelectToMapString(ctx, sql)
@@ -57,15 +58,15 @@ func tableColumnsMysql(ctx database.QueryableContext, tableName string, commoniz
 
 		if commonize {
 			if strings.Contains(columnType, "int") {
-				columnType = COLUMN_TYPE_INTEGER
+				columnType = sb.COLUMN_TYPE_INTEGER
 			} else if strings.Contains(columnType, "char") {
-				columnType = COLUMN_TYPE_STRING
+				columnType = sb.COLUMN_TYPE_STRING
 			} else if strings.Contains(columnType, "text") {
-				columnType = COLUMN_TYPE_TEXT
+				columnType = sb.COLUMN_TYPE_TEXT
 			} else if strings.Contains(columnType, "float") {
-				columnType = COLUMN_TYPE_FLOAT
+				columnType = sb.COLUMN_TYPE_FLOAT
 			} else if strings.Contains(columnType, "blob") {
-				columnType = COLUMN_TYPE_BLOB
+				columnType = sb.COLUMN_TYPE_BLOB
 			}
 		}
 
@@ -74,7 +75,7 @@ func tableColumnsMysql(ctx database.QueryableContext, tableName string, commoniz
 		isNullable := columnNullable == "YES"
 		isAutoIncrement := strings.Contains(columnExtra, "auto_increment")
 
-		column := Column{
+		column := sb.Column{
 			Name:          columnName,
 			Type:          columnType,
 			PrimaryKey:    isPrimaryKey,
@@ -98,7 +99,7 @@ func tableColumnsMysql(ctx database.QueryableContext, tableName string, commoniz
 	return columns, nil
 }
 
-func tableColumnsSqlite(ctx database.QueryableContext, tableName string, commonize bool) (columns []Column, err error) {
+func tableColumnsSqlite(ctx database.QueryableContext, tableName string, commonize bool) (columns []sb.Column, err error) {
 	sql := "SELECT * FROM 'SQLITE_MASTER' WHERE type='table' ORDER BY NAME ASC;"
 	sql += "PRAGMA table_info('" + tableName + "');"
 
@@ -119,23 +120,20 @@ func tableColumnsSqlite(ctx database.QueryableContext, tableName string, commoni
 
 		if commonize {
 			if strings.Contains(columnType, "int") {
-				columnType = COLUMN_TYPE_INTEGER
+				columnType = sb.COLUMN_TYPE_INTEGER
 			} else if strings.Contains(columnType, "char") {
-				columnType = COLUMN_TYPE_STRING
+				columnType = sb.COLUMN_TYPE_STRING
 			} else if strings.Contains(columnType, "text") {
-				// sqlite would return text even for varchar,
-				// which is why we check the length, to see
-				// if its string field
 				lengthInt := cast.ToInt(length)
 				if lengthInt > 0 {
-					columnType = COLUMN_TYPE_STRING
+					columnType = sb.COLUMN_TYPE_STRING
 				} else {
-					columnType = COLUMN_TYPE_TEXT
+					columnType = sb.COLUMN_TYPE_TEXT
 				}
 			} else if strings.Contains(columnType, "real") {
-				columnType = COLUMN_TYPE_FLOAT
+				columnType = sb.COLUMN_TYPE_FLOAT
 			} else if strings.Contains(columnType, "blob") {
-				columnType = COLUMN_TYPE_BLOB
+				columnType = sb.COLUMN_TYPE_BLOB
 			}
 		}
 
@@ -147,7 +145,7 @@ func tableColumnsSqlite(ctx database.QueryableContext, tableName string, commoni
 			isAutoIncrement = true
 		}
 
-		column := Column{
+		column := sb.Column{
 			Name:          columnName,
 			Type:          columnType,
 			PrimaryKey:    isPrimaryKey,
