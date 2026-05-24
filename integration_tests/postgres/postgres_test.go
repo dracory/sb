@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/dracory/sb"
+	"github.com/dracory/sb/integration_tests/common"
 )
 
 // TestPostgreSQLIntegration tests PostgreSQL database integration with zero-panic error handling
@@ -52,11 +53,11 @@ func TestPostgreSQLIntegration(t *testing.T) {
 
 	// Test table creation with unique name
 	tableName := "test_users_postgres"
-	err = createTestTable(db, tableName, sb.DIALECT_POSTGRES)
+	err = common.CreateTestTable(db, tableName, sb.DIALECT_POSTGRES)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
-	defer dropTestTable(db, tableName) // Clean up after test
+	defer common.DropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, params, err := sb.NewBuilder(sb.DIALECT_POSTGRES).

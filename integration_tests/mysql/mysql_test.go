@@ -9,6 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/dracory/sb"
+	"github.com/dracory/sb/integration_tests/common"
 )
 
 // TestMySQLIntegration tests MySQL database integration with zero-panic error handling
@@ -31,11 +32,11 @@ func TestMySQLIntegration(t *testing.T) {
 
 	// Test table creation with unique name
 	tableName := "test_users_mysql"
-	err = createTestTable(db, tableName, sb.DIALECT_MYSQL)
+	err = common.CreateTestTable(db, tableName, sb.DIALECT_MYSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
-	defer dropTestTable(db, tableName) // Clean up after test
+	defer common.DropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, params, err := sb.NewBuilder(sb.DIALECT_MYSQL).

@@ -7,8 +7,8 @@ import (
 	"github.com/dracory/sb"
 )
 
-// createTestTable creates a simple test table for integration testing using SB library
-func createTestTable(db *sql.DB, tableName string, dialect string) error {
+// CreateTestTable creates a simple test table for integration testing using SB library
+func CreateTestTable(db *sql.DB, tableName string, dialect string) error {
 	// Create table using SB library with proper dialect-specific syntax
 	createSQL, err := sb.NewBuilder(dialect).
 		Table(tableName).
@@ -57,8 +57,8 @@ func createTestTable(db *sql.DB, tableName string, dialect string) error {
 	return nil
 }
 
-// dropTestTable drops a test table after testing
-func dropTestTable(db *sql.DB, tableName string) error {
+// DropTestTable drops a test table after testing
+func DropTestTable(db *sql.DB, tableName string) error {
 	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)
 	_, err := db.Exec(dropSQL)
 	if err != nil {

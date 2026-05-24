@@ -7,6 +7,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/dracory/sb"
+	"github.com/dracory/sb/integration_tests/common"
 )
 
 // TestErrorHandlingIntegration tests error handling scenarios in real database contexts
@@ -72,7 +73,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	}
 
 	// Create table and execute valid SQL
-	err = createTestTable(db, "test_users", sb.DIALECT_SQLITE)
+	err = common.CreateTestTable(db, "test_users", sb.DIALECT_SQLITE)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}

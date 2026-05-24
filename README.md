@@ -214,6 +214,41 @@ rows, err := db.Query(sql, params...)
 
 ## Migration Guide
 
+### Breaking Changes in v0.20.0
+
+New fluent API methods for column and table operations have been introduced. Old methods are deprecated and will be removed in May 2027.
+
+#### New Fluent API Methods (Recommended)
+
+| Operation | New Method (Fluent) | Old Method (Deprecated) |
+|-----------|-------------------|------------------------|
+| Add Column | `ColumnAdd(column)` | `TableColumnAdd(tableName, column)` |
+| Drop Column | `ColumnDrop(columnName)` | `TableColumnDrop(tableName, columnName)` |
+| Rename Column | `ColumnRename(old, new)` | `TableColumnRename(tableName, old, new)` |
+| Change Column | `ColumnChange(column)` | `TableColumnChange(tableName, column)` |
+| Rename Table | `Rename(newName)` | `TableRename(oldName, newName)` |
+| Column Exists | `ColumnExists(columnName)` | — |
+
+#### Migration Example
+
+```go
+// Before (Deprecated - removes May 2027)
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    TableColumnDrop("users", "temp_column")
+
+// After (Recommended)
+sql, err := sb.NewBuilder(sb.DIALECT_MYSQL).
+    Table("users").
+    ColumnDrop("temp_column")
+```
+
+#### Benefits of Fluent API
+
+- ✅ **Consistency** - All operations use `Table()` to set context
+- ✅ **Chainability** - Method chaining with clear flow
+- ✅ **Type Safety** - Table name validated once, reused across operations
+- ✅ **Better Error Handling** - Clear error messages for missing table context
+
 ### Breaking Changes in v0.19.0
 
 Schema execution functions have been moved to the `schema` sub-package. This is a **hard-breaking change** — no backward compatibility aliases are provided.
@@ -392,6 +427,9 @@ default:
 
 ## Recently Implemented Features
 
+- ✅ **Fluent API for Column Operations** - `ColumnAdd`, `ColumnDrop`, `ColumnRename`, `ColumnChange` with `Table()` context
+- ✅ **Fluent API for Table Operations** - `Rename` for table renaming with `Table()` context
+- ✅ **Column Existence Check** - `ColumnExists` method for checking column presence
 - ✅ **Parameterized Queries** - SQL injection protection by default with dialect-specific placeholders
 - ✅ **Zero-Panic Error Handling** - Complete error collection system, no panics anywhere
 - ✅ **Subquery Support** - IN, NOT IN, EXISTS, NOT EXISTS, and comparison subqueries with correlation

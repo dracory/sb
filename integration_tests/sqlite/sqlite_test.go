@@ -7,6 +7,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/dracory/sb"
+	"github.com/dracory/sb/integration_tests/common"
 )
 
 // TestSQLiteIntegration tests SQLite database integration with zero-panic error handling
@@ -20,11 +21,11 @@ func TestSQLiteIntegration(t *testing.T) {
 
 	// Test table creation with unique name
 	tableName := "test_users_sqlite"
-	err = createTestTable(db, tableName, sb.DIALECT_SQLITE)
+	err = common.CreateTestTable(db, tableName, sb.DIALECT_SQLITE)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
-	defer dropTestTable(db, tableName) // Clean up after test
+	defer common.DropTestTable(db, tableName) // Clean up after test
 
 	// Test successful SQL generation and execution
 	sql, params, err := sb.NewBuilder(sb.DIALECT_SQLITE).
